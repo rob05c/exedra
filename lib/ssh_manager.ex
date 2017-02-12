@@ -30,9 +30,7 @@ defmodule Exedra.SSHManager do
 
   @doc false
   def handle_cast(:start, %__MODULE__{port: port, priv_dir: priv_dir, credentials: credentials} = state) do
-    IO.puts "handle_cast"
-    IO.puts priv_dir
-    {:ok, pid} = :ssh.daemon port,  shell:          {Exedra.REPL, :start, []},
+    {:ok, pid} = :ssh.daemon port,  shell:          fn(user) -> Exedra.REPL.start(user) end,
                                     system_dir:     priv_dir,
                                     user_dir:       priv_dir,
                                     user_passwords: credentials

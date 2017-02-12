@@ -3,7 +3,6 @@ defmodule Exedra do
 
   @spec start(any, any) :: Supervisor.on_start
   def start(_type, _args) do
-    IO.puts "start"
     import Supervisor.Spec, warn: false
 
     children = [
