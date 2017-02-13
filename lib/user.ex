@@ -45,4 +45,13 @@ defmodule Exedra.User do
     length(:ets.lookup(:users, user_name)) == 1
   end
 
+  def get(name) do
+    case :ets.lookup(:users, name) do
+      [{username, user}] ->
+        {:ok, user}
+      [] ->
+        :error
+    end
+  end
+
 end
