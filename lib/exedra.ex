@@ -9,6 +9,8 @@ defmodule Exedra do
       worker(Exedra.SSHManager, [])
     ]
 
+    :ok = Exedra.User.load()
+
     opts = [strategy: :one_for_one, name: Exedra.Supervisor]
     Supervisor.start_link(children, opts)
   end
