@@ -54,4 +54,12 @@ defmodule Exedra.User do
     end
   end
 
+  # TODO lock
+  def set(user) do
+    :ets.insert(:users, {user.name, user})
+
+    # debug - writing all users to disk every time someone moves doesn't scale.
+    :ets.tab2file(:users,String.to_char_list(@data_file), sync: true)
+  end
+
 end

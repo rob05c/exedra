@@ -28,15 +28,39 @@ defmodule Exedra.Room do
   end
 
   def create(title, description) do
-    next_id = :ets.update_counter(:rooms, :next_id, 1, 0)
-    :ets.insert_new(:rooms, {next_id, %Exedra.Room.Data{id: next_id, title: title, description: description}})
+    next_id = :ets.update_counter(:rooms, :next_id, 1, {1,0})
+    IO.puts "next_id: " <> Integer.to_string(next_id)
+    new_room = %Exedra.Room.Data{id: next_id, title: title, description: description}
+    :ets.insert_new(:rooms, {next_id, new_room})
+    IO.puts "creating room id " <> Integer.to_string(next_id)
+    # debug - writing all objects to disk every change doesn't scale
+    :ets.tab2file(:rooms,String.to_char_list(@data_file), sync: true)
+
+    new_room
+  end
+
+  # TODO lock
+  # link links the fromRoom to the toRoom in the given direction. Note this does not create a bidirectional link. The `to_room` must be linked in the opposite direction, to establish a bidirectional link. If the from_room has an existing exit in the given direction, it is overwritten.
+  def link(from_room, to_room, direction) do
+    from_room = %{from_room | exits: Map.put(from_room.exits, direction, to_room.id)}
+    :ets.insert(:rooms, {from_room.id, from_room})
+
+    # debug - writing all objects to disk every change doesn't scale
+    :ets.tab2file(:rooms,String.to_char_list(@data_file), sync: true)
+  end
+
+  def link_rooms(from_room, to_room, direction) do
+    link(from_room, to_room, direction)
+    link(to_room, from_room, reverse(direction))
   end
 
   def get(id) do
     case :ets.lookup(:rooms, id) do
       [{id, room}] ->
+        IO.puts "found room id " <> Integer.to_string(id)
         {:ok, room}
       [] ->
+        IO.puts "not found room id " <> Integer.to_string(id)
         :error
     end
   end
@@ -65,6 +89,32 @@ defmodule Exedra.Room do
     s
   end
 
+  def create_dir(room, direction, title, description) do
+    new_room = create(title, description)
+    link_rooms(room, new_room, direction)
+  end
+
+  def reverse(dir) do
+    case dir do
+      :n ->
+        :s
+      :e ->
+        :w
+      :s ->
+        :n
+      :w ->
+        :e
+      :ne ->
+        :sw
+      :nw ->
+        :se
+      :se ->
+        :nw
+      :sw ->
+        :ne
+    end
+  end
+
   def dir_atom_to_string(dir) do
     case dir do
       :n ->
@@ -83,6 +133,45 @@ defmodule Exedra.Room do
         "southeast"
       :sw ->
         "southwest"
+    end
+  end
+
+  def dir_string_to_atom(dir) do
+    case dir do
+      "n" ->
+        :n
+      "north" ->
+        :n
+      "e" ->
+        :e
+      "east" ->
+        :e
+      "s" ->
+        :s
+      "south" ->
+        :s
+      "w" ->
+        :w
+      "west" ->
+        :w
+      "northeast" ->
+        :ne
+      "ne" ->
+        :ne
+      "northwest" ->
+        :nw
+      "nw" ->
+        :nw
+      "southeast" ->
+        :se
+      "se" ->
+        :se
+      "southwest" ->
+        :sw
+      "sw" ->
+        :sw
+        _ ->
+        :invalid
     end
   end
 end
