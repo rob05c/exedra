@@ -29,10 +29,8 @@ defmodule Exedra.Room do
 
   def create(title, description) do
     next_id = :ets.update_counter(:rooms, :next_id, 1, {1,0})
-    IO.puts "next_id: " <> Integer.to_string(next_id)
     new_room = %Exedra.Room.Data{id: next_id, title: title, description: description}
     :ets.insert_new(:rooms, {next_id, new_room})
-    IO.puts "creating room id " <> Integer.to_string(next_id)
     # debug - writing all objects to disk every change doesn't scale
     :ets.tab2file(:rooms,String.to_char_list(@data_file), sync: true)
 
@@ -56,11 +54,9 @@ defmodule Exedra.Room do
 
   def get(id) do
     case :ets.lookup(:rooms, id) do
-      [{id, room}] ->
-        IO.puts "found room id " <> Integer.to_string(id)
+      [{_, room}] ->
         {:ok, room}
       [] ->
-        IO.puts "not found room id " <> Integer.to_string(id)
         :error
     end
   end
