@@ -1,4 +1,5 @@
 defmodule Exedra.Room do
+  alias Exedra.ANSI, as: ANSI
 
   @data_file "data/rooms"
 
@@ -9,7 +10,7 @@ defmodule Exedra.Room do
 
   @room_zero %{
     title: "Primordial Fog",
-    description: "A primordial fog permeates the area, obscuring all"
+    description: "A primordial fog permeates the area, obscuring all."
   }
 
   def load() do
@@ -41,11 +42,12 @@ defmodule Exedra.Room do
   end
 
   def print(room, brief) do
-    s = room.title <> "\n"
+    # TODO: add user custom colouring
+    s = ANSI.colors[:brown] <> room.title <> ANSI.colors[:reset] <> "\n"
     s = if brief do
       s
     else
-      s <> room.description <> "\n"
+      s <> ANSI.colors[:grey] <> room.description <> ANSI.colors[:reset] <> "\n"
     end
 
     # TODO: make this more efficient?
@@ -55,11 +57,11 @@ defmodule Exedra.Room do
     |> Enum.map(fn(dir) -> dir_atom_to_string(dir) end)
     |> Enum.join(", ")
 
-    s = s <> if String.length(exits) == 0 do
+    s = s <> ANSI.colors[:blue] <> if String.length(exits) == 0 do
       "There are no visible exits."
     else
       "You see exits leading " <> exits <> "."
-    end
+    end <> ANSI.colors[:reset]
     s
   end
 
