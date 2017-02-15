@@ -5,7 +5,7 @@ defmodule Exedra.Room do
 
   defmodule Data do
     @enforce_keys [:id, :title, :description]
-    defstruct id: 0, title: "", description: "", exits: %{}
+    defstruct id: 0, title: "", description: "", exits: %{}, items: MapSet.new
   end
 
   @room_zero %{
@@ -59,6 +59,13 @@ defmodule Exedra.Room do
       [] ->
         :error
     end
+  end
+
+  def set(room) do
+    :ets.insert(:rooms, {room.id, room})
+
+    # debug - writing all users to disk every time someone moves doesn't scale.
+    :ets.tab2file(:rooms, String.to_char_list(@data_file), sync: true)
   end
 
   def print(room, brief) do

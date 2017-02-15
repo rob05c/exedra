@@ -5,7 +5,7 @@ defmodule Exedra.User do
   defmodule Data do
     @enforce_keys [:name, :room_id, :password]
     # TODO: don't store pass in plaintext
-    defstruct name: "", password: "", room_id: 0
+    defstruct name: "", password: "", room_id: 0, items: MapSet.new
   end
 
   def load() do
@@ -59,7 +59,7 @@ defmodule Exedra.User do
     :ets.insert(:users, {user.name, user})
 
     # debug - writing all users to disk every time someone moves doesn't scale.
-    :ets.tab2file(:users,String.to_char_list(@data_file), sync: true)
+    :ets.tab2file(:users, String.to_char_list(@data_file), sync: true)
   end
 
 end
