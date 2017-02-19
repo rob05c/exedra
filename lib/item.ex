@@ -4,6 +4,10 @@ defmodule Exedra.Item do
 
   defmodule Data do
     @enforce_keys [:id, :name, :brief]
+    # name is a single word, like 'sword' or 'feather'. This is the keyword used to issue commands like 'drop sword'.
+    # brief is a noun clause, like 'a wooden sword' or 'a dull, blue orb'. This is what is seen in arbitrary locations, such as inventory and wielding.
+    # description is a paragraph. This is what is seen when inspecting an item in detail, for example 'probe sword'.
+    # room_description is a declarative sentence, complete with period.. It is what is seen when the item is on the ground. For example, 'a chipped wooden sword lies here, muddy with footprints.'
     defstruct id: 0, name: "", brief: "", description: "", room_description: ""
   end
 

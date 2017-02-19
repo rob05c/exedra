@@ -77,6 +77,19 @@ defmodule Exedra.Room do
       s <> ANSI.colors[:grey] <> room.description <> ANSI.colors[:reset] <> "\n"
     end
 
+    items = room.items
+    |> Enum.map(fn(item_id) ->
+        {:ok, item} = Exedra.Item.get(item_id)
+        item.room_description
+      end)
+    |> Enum.join(" ")
+
+    s = if String.length(items) > 0 do
+      s <> ANSI.colors[:darkgrey] <> items <> ANSI.colors[:reset] <> "\n"
+    else
+      s
+    end
+
     # TODO: make this more efficient?
     # TODO: add "and" to last exit
     exits = room.exits

@@ -25,8 +25,13 @@ defmodule Exedra.Commands do
   def execute(["createroom" | args], username), do: create_room(username, args)
   def execute(["cr"         | args], username), do: create_room(username, args)
 
-  def execute(["createitem" | args], username), do: create_item(username, args)
-  def execute(["ci"         | args], username), do: create_item(username, args)
+  def execute(["createitem"       | args], username), do: create_item(       username, args)
+  def execute(["ci"               | args], username), do: create_item(       username, args)
+  def execute(["describeitem"     | args], username), do: describe_item(     username, args)
+  def execute(["di"               | args], username), do: describe_item(     username, args)
+  def execute(["roomdescribeitem" | args], username), do: room_describe_item(username, args)
+  def execute(["rdi"              | args], username), do: room_describe_item(username, args)
+
 
   def execute(["get" | args], username), do: get_item(username, args)
   def execute(["g"   | args], username), do: get_item(username, args)
@@ -34,9 +39,25 @@ defmodule Exedra.Commands do
   def execute(["drop" | args], username), do: drop_item(username, args)
   def execute(["d"    | args], username), do: drop_item(username, args)
 
+  def execute(["items" | args], username), do: items(username)
+  def execute(["i"     | args], username), do: items(username)
+
   def execute([""], _), do: nothing()
 
   def execute(_, _), do: unknown()
+
+  def items(username) do
+    {:ok, player} = Exedra.User.get(username)
+    # TODO: add "and" before final item.
+    items = player.items
+    |> Enum.map(fn(item_id) ->
+        {:ok, item} = Exedra.Item.get(item_id)
+        item.brief
+      end)
+    |> Enum.join(", ")
+    IO.puts "You are holding: " <> items <> "."
+  end
+
 
   def look(username) do
     {:ok, user} = Exedra.User.get(username)
@@ -80,6 +101,76 @@ defmodule Exedra.Commands do
     end
   end
 
+  def room_describe_item(username, args) do
+    # len(args) >= 5 because name_or_id is arg 1, and the minimal grammatically correct description is 'article noun verb adverb', e.g. 'the sword lies here'
+    if length(args) < 5 do
+      IO.puts "What do you want to describe?"
+    else
+      [name_or_id | description_words] = args
+      room_description = Enum.join(description_words, " ")
+      {:ok, player} = Exedra.User.get(username)
+      case Integer.parse(name_or_id) do
+        {id, _} ->
+          if MapSet.member?(player.items, id) do
+            {:ok, item} = Exedra.Item.get(id)
+            Exedra.Item.set %{item | room_description: room_description}
+            IO.puts "A vision of " <> item.brief <> " on the ground flashes in your mind's eye."
+          else
+            IO.puts "You aren't carrying that."
+          end
+        :error ->
+          name = name_or_id
+          item_id = Enum.find player.items, fn(item_id) ->
+            {:ok, item} = Exedra.Item.get(item_id)
+            item.name == name
+          end
+          if item_id == nil do
+            IO.puts "You are not carrying that."
+          else
+            {:ok, item} = Exedra.Item.get(item_id)
+            Exedra.Item.set %{item | room_description: room_description}
+            IO.puts "A vision of " <> item.brief <> " on the ground flashes in your mind's eye."
+          end
+      end
+    end
+  end
+
+  # TODO: abstract duplication with room_describe_item
+  def describe_item(username, args) do
+    # len(args) >= 5 because name_or_id is arg 1, and the minimal grammatically correct description is 'article noun verb adverb', e.g. 'the sword lies here'
+    if length(args) < 5 do
+      IO.puts "What do you want to describe?"
+    else
+      [name_or_id | description_words] = args
+      description = Enum.join(description_words, " ")
+      {:ok, player} = Exedra.User.get(username)
+      case Integer.parse(name_or_id) do
+        {id, _} ->
+          if MapSet.member?(player.items, id) do
+            {:ok, item} = Exedra.Item.get(id)
+            Exedra.Item.set %{item | description: description}
+            IO.puts "A vision of " <> item.brief <> " on the ground flashes in your mind's eye."
+          else
+            IO.puts "You aren't carrying that."
+          end
+        :error ->
+          name = name_or_id
+          item_id = Enum.find player.items, fn(item_id) ->
+            {:ok, item} = Exedra.Item.get(item_id)
+            item.name == name
+          end
+          if item_id == nil do
+            IO.puts "You are not carrying that."
+          else
+            {:ok, item} = Exedra.Item.get(item_id)
+            Exedra.Item.set %{item | description: description}
+            IO.puts "A vision of " <> item.brief <> " on the ground flashes in your mind's eye."
+          end
+      end
+    end
+  end
+
+
   def get_item(username, args) do
     if length(args) < 1 do
       IO.puts "What do you want to get?"
@@ -116,6 +207,7 @@ defmodule Exedra.Commands do
   end
 
   # TODO: abstract duplication with get_item
+  # TODO: prevent dropping items which haven't had description or room_description set
   def drop_item(username, args) do
     if length(args) < 1 do
       IO.puts "What do you want to get?"
@@ -150,7 +242,7 @@ defmodule Exedra.Commands do
     end
   end
 
-
+  # TODO: prevent moving from rooms without descriptions, and auto-move to on creation.
   def move(playername, direction) do
     {:ok, player} = Exedra.User.get(playername)
     {:ok, player_room} = Exedra.Room.get(player.room_id)

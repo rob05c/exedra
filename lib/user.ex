@@ -28,12 +28,10 @@ defmodule Exedra.User do
   def login(user_name, pass) do
     default_room = 0 # TODO: make customizable
     case :ets.lookup(:users, user_name) do
-      [{name, user_data}] ->
-        IO.puts "existing login"
+      [{^user_name, user_data}] ->
         user_data.password == pass
       [] ->
-        IO.puts "new login"
-        new_user = %Exedra.User.Data{name: user_name, password: pass, room_id: 0}
+        new_user = %Exedra.User.Data{name: user_name, password: pass, room_id: default_room}
         :ets.insert_new(:users, {user_name, new_user})
         # TODO: dump all object tables at once
         :ets.tab2file(:users,String.to_char_list(@data_file), sync: true)
@@ -47,7 +45,7 @@ defmodule Exedra.User do
 
   def get(name) do
     case :ets.lookup(:users, name) do
-      [{username, user}] ->
+      [{^name, user}] ->
         {:ok, user}
       [] ->
         :error
