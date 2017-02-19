@@ -11,14 +11,20 @@ defmodule Exedra.REPL do
   def loop(username) do
     prompt = "> "
 
-    prompt
-    |> IO.gets
-    |> String.Chars.to_string
-    |> String.trim_trailing
-    |> String.split(" ")
-    |> Exedra.Commands.execute(username)
+    case IO.gets prompt do
+      {:error, reason} ->
+        # TODO log
+        IO.puts username <> " lost connection: " <> Atom.to_string(reason)
+      input ->
+        input
+        |> String.Chars.to_string
+        |> String.trim_trailing
+        |> String.split(" ")
+        |> Exedra.Commands.execute(username)
+        loop(username)
+    end
 
-    loop(username)
+
   end
 
 end
