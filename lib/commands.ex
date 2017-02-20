@@ -42,8 +42,10 @@ defmodule Exedra.Commands do
   def execute(["items" | _], username), do: items(username)
   def execute(["i"     | _], username), do: items(username)
 
-  def execute(["say"   | args], username), do: say(username, args)
-  def execute(["'"     | args], username), do: say(username, args)
+  def execute(["say" | args], username), do: say(username, args)
+  def execute(["'"   | args], username), do: say(username, args)
+
+  def execute(["tell" | args], username), do: tell(username, args)
 
   def execute([""], _), do: nothing()
   def execute(_, _), do: unknown()
@@ -58,6 +60,40 @@ defmodule Exedra.Commands do
     Exedra.Room.message_players(room, player_name, self_msg, others_msg) # TODO add period logic
   end
 
+  def tell(player_name, args) do
+    tell_color = Exedra.ANSI.colors[:yellow]
+    reset_color = Exedra.ANSI.colors[:reset]
+    if length(args) < 2 do
+      no_such_player_msg = tell_color <> "Who do you want to tell?" <> reset_color
+      IO.puts no_such_player_msg
+    else
+      [target_player_name | said_words] = args
+      if target_player_name == player_name do
+        said = Enum.join(said_words, " ")
+        crazy_msg = tell_color <> "You think to yourself, \"" <> ensure_sentence(said) <> "\"" <> reset_color
+        IO.puts crazy_msg
+      else
+        case Exedra.User.get(target_player_name) do
+          {:ok, _} ->
+            case Exedra.SessionManager.get(Exedra.SessionManager, target_player_name) do
+              {:ok, msg_pid} ->
+                said = Enum.join(said_words, " ")
+                self_msg = tell_color <> "You tell " <> String.capitalize(target_player_name) <> ", \"" <>  ensure_sentence(said) <> "\"" <> reset_color
+                other_msg = tell_color <> String.capitalize(player_name) <> " tells you, \"" <>  ensure_sentence(said) <> "\"" <> reset_color
+                send msg_pid, {:message, other_msg}
+                IO.puts self_msg
+              :error ->
+                target_not_online_msg = tell_color <> "A wave of lonliness washes over you." <> reset_color
+                IO.puts target_not_online_msg
+            end
+          _ ->
+            "You don't know anyone named '" <> target_player_name <> "."
+        end
+      end
+    end
+  end
+
+
   def ensure_sentence(msg) do
     msg = case String.length(msg) do
             0 ->
@@ -68,7 +104,7 @@ defmodule Exedra.Commands do
               {first_word, rest} = String.split_at(msg, 1)
               String.upcase(first_word) <> rest
           end
-    msg = if String.ends_with? msg, [".", "?", "!"] do
+    if String.ends_with? msg, [".", "?", "!"] do
       msg
     else
       msg <> "."
