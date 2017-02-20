@@ -16,7 +16,7 @@ defmodule Exedra do
     ]
 
     :ok = User.load()
-    :ok = Room.load()
+    :ok = Room.load() # TODO remove room players on startup
     :ok = Item.load()
 
     opts = [strategy: :one_for_one, name: Exedra.Supervisor]

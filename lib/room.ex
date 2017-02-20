@@ -70,7 +70,7 @@ defmodule Exedra.Room do
     :ets.tab2file(:rooms, String.to_char_list(@data_file), sync: true)
   end
 
-  def print(room, brief) do
+  def print(room, brief, self_player_name) do
     # TODO: add user custom colouring
     s = ANSI.colors[:brown] <> room.title <> ANSI.colors[:reset] <> "\n"
     s = if brief do
@@ -91,6 +91,23 @@ defmodule Exedra.Room do
     else
       s
     end
+
+    players_no_self = Enum.filter room.players, fn(player_name) -> player_name != self_player_name end
+    s = s <> case length(players_no_self) do
+               0 ->
+                 ""
+               1 ->
+                 String.capitalize(List.first(players_no_self)) <> " is here.\n"
+               2 ->
+                 [player_a | player_b] = players_no_self
+                 String.capitalize(player_a) <> " and " <> String.capitalize(List.first(player_b)) <> " are here.\n"
+               _ ->
+                 [some_player | rest_players] = players_no_self
+                 Enum.reduce(rest_players, "", fn(rest_player_name, acc) ->
+                   acc <> String.capitalize(rest_player_name) <> ", "
+                 end) <> "and " <> String.capitalize(some_player) <> " are here.\n"
+             end
+
 
     # TODO: make this more efficient?
     # TODO: add "and" to last exit
@@ -120,7 +137,10 @@ defmodule Exedra.Room do
             Logger.info "others message"
             send msg_pid, {:message, others_msg} # TODO catch? rescue?
           end
-        {:error} ->
+        :error ->
+          Logger.error "player " <> room_player_name <> " was in room but not logged in."
+          # TODO lock. There's a race here, like every other data mutation
+          Exedra.Room.set(%{room | players: MapSet.delete(room.players, room_player_name)})
           nil
       end
     end

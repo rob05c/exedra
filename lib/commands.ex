@@ -53,13 +53,22 @@ defmodule Exedra.Commands do
     {:ok, player} = Exedra.User.get(player_name)
     {:ok, room} = Exedra.Room.get(player.room_id)
 
-    others_msg = String.capitalize(player_name) <> " says, \"" <> ensure_sentence_end(said) <> "\""
-    self_msg = "You say, \"" <> ensure_sentence_end(said) <> "\""
+    others_msg = String.capitalize(player_name) <> " says, \"" <> ensure_sentence(said) <> "\""
+    self_msg = "You say, \"" <> ensure_sentence(said) <> "\""
     Exedra.Room.message_players(room, player_name, self_msg, others_msg) # TODO add period logic
   end
 
-  def ensure_sentence_end(msg) do
-    if String.ends_with? msg, [".", "?", "!"] do
+  def ensure_sentence(msg) do
+    msg = case String.length(msg) do
+            0 ->
+              msg
+            1 ->
+              String.upcase(msg)
+            _ ->
+              {first_word, rest} = String.split_at(msg, 1)
+              String.upcase(first_word) <> rest
+          end
+    msg = if String.ends_with? msg, [".", "?", "!"] do
       msg
     else
       msg <> "."
@@ -82,13 +91,13 @@ defmodule Exedra.Commands do
   def look(username) do
     {:ok, user} = Exedra.User.get(username)
     {:ok, room} = Exedra.Room.get(user.room_id)
-    IO.puts Exedra.Room.print(room, false)
+    IO.puts Exedra.Room.print(room, false, username)
   end
 
   def quick_look(username) do
     {:ok, user} = Exedra.User.get(username)
     {:ok, room} = Exedra.Room.get(user.room_id)
-    IO.puts Exedra.Room.print(room, true)
+    IO.puts Exedra.Room.print(room, true, username)
   end
 
   def create_room(username, args) do
@@ -277,7 +286,7 @@ defmodule Exedra.Commands do
 
         Exedra.User.set(player)
         IO.puts "You meander " <> Exedra.Room.dir_atom_to_string(direction) <> "."
-        IO.puts Exedra.Room.print(to_room, false)
+        IO.puts Exedra.Room.print(to_room, false, playername)
       :error ->
         IO.puts "There is no exit in that direction."
     end
