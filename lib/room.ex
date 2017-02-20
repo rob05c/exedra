@@ -131,10 +131,12 @@ defmodule Exedra.Room do
       case Exedra.SessionManager.get(Exedra.SessionManager, room_player_name) do
         {:ok, msg_pid} ->
           if room_player_name == player_name do
-            Logger.info "self message"
-            send msg_pid, {:message, self_msg} # TODO catch? rescue?
+            if self_msg != "" do
+              send msg_pid, {:message, self_msg} # TODO catch? rescue?
+            else
+              nil
+            end
           else
-            Logger.info "others message"
             send msg_pid, {:message, others_msg} # TODO catch? rescue?
           end
         :error ->

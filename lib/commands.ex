@@ -277,15 +277,23 @@ defmodule Exedra.Commands do
     {:ok, player_room} = Exedra.Room.get(player.room_id)
     case Map.fetch(player_room.exits, direction) do
       {:ok, to_room_id} ->
-        IO.inspect to_room_id
         {:ok, to_room} = Exedra.Room.get(to_room_id)
-        player = %{player | room_id: to_room_id}
 
+        # TODO lock. Like everything else.
         Exedra.Room.set(%{player_room | players: MapSet.delete(player_room.players, playername)})
         Exedra.Room.set(%{to_room | players: MapSet.put(to_room.players, playername)})
+        Exedra.User.set(%{player | room_id: to_room_id})
 
-        Exedra.User.set(player)
-        IO.puts "You meander " <> Exedra.Room.dir_atom_to_string(direction) <> "."
+        to_dir_str = Exedra.Room.dir_atom_to_string(direction)
+        from_dir_str = Exedra.Room.dir_atom_to_string(Exedra.Room.reverse(direction))
+
+        self_msg = "You meander " <> to_dir_str <> "."
+        exit_msg = String.capitalize(playername) <> " meanders out to the " <> to_dir_str <> "."
+        entry_msg = String.capitalize(playername) <> " meanders in from the " <> from_dir_str <> "."
+
+        IO.puts self_msg
+        Exedra.Room.message_players(player_room, playername, "", exit_msg)
+        Exedra.Room.message_players(to_room, playername, "", entry_msg)
         IO.puts Exedra.Room.print(to_room, false, playername)
       :error ->
         IO.puts "There is no exit in that direction."
