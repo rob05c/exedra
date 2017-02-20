@@ -51,12 +51,15 @@ defmodule Exedra.Commands do
   def execute(_, _), do: unknown()
 
   def say(player_name, args) do
+    say_color = Exedra.ANSI.colors[:cyan]
+    reset_color = Exedra.ANSI.colors[:reset]
+
     said = Enum.join(args, " ")
     {:ok, player} = Exedra.User.get(player_name)
     {:ok, room} = Exedra.Room.get(player.room_id)
 
-    others_msg = String.capitalize(player_name) <> " says, \"" <> ensure_sentence(said) <> "\""
-    self_msg = "You say, \"" <> ensure_sentence(said) <> "\""
+    others_msg = say_color <> String.capitalize(player_name) <> " says, \"" <> ensure_sentence(said) <> "\"" <> reset_color
+    self_msg = say_color <> "You say, \"" <> ensure_sentence(said) <> "\"" <> reset_color
     Exedra.Room.message_players(room, player_name, self_msg, others_msg) # TODO add period logic
   end
 
