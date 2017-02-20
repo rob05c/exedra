@@ -39,12 +39,32 @@ defmodule Exedra.Commands do
   def execute(["drop" | args], username), do: drop_item(username, args)
   def execute(["d"    | args], username), do: drop_item(username, args)
 
-  def execute(["items" | args], username), do: items(username)
-  def execute(["i"     | args], username), do: items(username)
+  def execute(["items" | _], username), do: items(username)
+  def execute(["i"     | _], username), do: items(username)
+
+  def execute(["say"   | args], username), do: say(username, args)
+  def execute(["'"     | args], username), do: say(username, args)
 
   def execute([""], _), do: nothing()
-
   def execute(_, _), do: unknown()
+
+  def say(player_name, args) do
+    said = Enum.join(args, " ")
+    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, room} = Exedra.Room.get(player.room_id)
+
+    others_msg = String.capitalize(player_name) <> " says, \"" <> ensure_sentence_end(said) <> "\""
+    self_msg = "You say, \"" <> ensure_sentence_end(said) <> "\""
+    Exedra.Room.message_players(room, player_name, self_msg, others_msg) # TODO add period logic
+  end
+
+  def ensure_sentence_end(msg) do
+    if String.ends_with? msg, [".", "?", "!"] do
+      msg
+    else
+      msg <> "."
+    end
+  end
 
   def items(username) do
     {:ok, player} = Exedra.User.get(username)
@@ -251,6 +271,10 @@ defmodule Exedra.Commands do
         IO.inspect to_room_id
         {:ok, to_room} = Exedra.Room.get(to_room_id)
         player = %{player | room_id: to_room_id}
+
+        Exedra.Room.set(%{player_room | players: MapSet.delete(player_room.players, playername)})
+        Exedra.Room.set(%{to_room | players: MapSet.put(to_room.players, playername)})
+
         Exedra.User.set(player)
         IO.puts "You meander " <> Exedra.Room.dir_atom_to_string(direction) <> "."
         IO.puts Exedra.Room.print(to_room, false)

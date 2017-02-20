@@ -13,7 +13,7 @@ defmodule Exedra.REPL do
     # TODO: Determine if this should be a task or genserver
     spawn fn -> input_listen(username, loop_pid) end
 
-    SessionManager.set(SessionManager, username, loop_pid)
+    login username, loop_pid
 
     loop_pid
   end
@@ -30,7 +30,7 @@ defmodule Exedra.REPL do
       {:die, reason} ->
         # TODO log
         IO.puts username <> " lost connection: " <> Atom.to_string(reason)
-        SessionManager.delete(SessionManager, username)
+        logout username
         :ok
       {:message, message} ->
         IO.puts message
@@ -49,5 +49,20 @@ defmodule Exedra.REPL do
         send loop_pid, {:input, data}
         input_listen(username, loop_pid)
     end
+  end
+
+  def logout(player_name) do
+    SessionManager.delete(SessionManager, player_name)
+    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, room} = Exedra.Room.get(player.room_id)
+    Exedra.Room.set(%{room | players: MapSet.delete(room.players, player_name)})
+  end
+
+  # TODO: logout existing logins for this player
+  def login(player_name, loop_pid) do
+    SessionManager.set(SessionManager, player_name, loop_pid)
+    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, room} = Exedra.Room.get(player.room_id)
+    Exedra.Room.set(%{room | players: MapSet.put(room.players, player_name)})
   end
 end

@@ -1,11 +1,13 @@
 defmodule Exedra.Room do
+  require Logger
+
   alias Exedra.ANSI, as: ANSI
 
   @data_file "data/rooms"
 
   defmodule Data do
     @enforce_keys [:id, :title, :description]
-    defstruct id: 0, title: "", description: "", exits: %{}, items: MapSet.new
+    defstruct id: 0, title: "", description: "", exits: %{}, items: MapSet.new, players: MapSet.new
   end
 
   @room_zero %{
@@ -103,6 +105,25 @@ defmodule Exedra.Room do
       "You see exits leading " <> exits <> "."
     end <> ANSI.colors[:reset]
     s
+  end
+
+  def message_players(room, player_name, self_msg, others_msg) do
+    Logger.info "message_players"
+    Logger.info inspect(room.players)
+    Enum.map room.players, fn(room_player_name) ->
+      case Exedra.SessionManager.get(Exedra.SessionManager, room_player_name) do
+        {:ok, msg_pid} ->
+          if room_player_name == player_name do
+            Logger.info "self message"
+            send msg_pid, {:message, self_msg} # TODO catch? rescue?
+          else
+            Logger.info "others message"
+            send msg_pid, {:message, others_msg} # TODO catch? rescue?
+          end
+        {:error} ->
+          nil
+      end
+    end
   end
 
   def create_dir(room, direction, title, description) do
