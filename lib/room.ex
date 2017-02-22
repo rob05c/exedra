@@ -7,7 +7,7 @@ defmodule Exedra.Room do
 
   defmodule Data do
     @enforce_keys [:id, :title, :description]
-    defstruct id: 0, title: "", description: "", exits: %{}, items: MapSet.new, players: MapSet.new
+    defstruct id: 0, title: "", description: "", exits: %{}, items: MapSet.new, players: MapSet.new, npcs: MapSet.new
   end
 
   @room_zero %{
@@ -84,10 +84,23 @@ defmodule Exedra.Room do
         {:ok, item} = Exedra.Item.get(item_id)
         item.room_description
       end)
-    |> Enum.join(" ")
+    |> Enum.join(", ")
 
     s = if String.length(items) > 0 do
-      s <> ANSI.colors[:darkgrey] <> items <> ANSI.colors[:reset] <> "\n"
+      s <> ANSI.colors[:darkgrey] <> items <> "." <> ANSI.colors[:reset] <> "\n"
+    else
+      s
+    end
+
+    npcs = room.npcs
+    |> Enum.map(fn(npc_id) ->
+        {:ok, npc} = Exedra.NPC.get(npc_id)
+        npc.brief # TODO change to room_description when the command is implemented
+      end)
+    |> Enum.join(", ")
+
+    s = if String.length(npcs) > 0 do
+      s <> ANSI.colors[:grey] <> npcs <> "." <> ANSI.colors[:reset] <> "\n"
     else
       s
     end

@@ -32,6 +32,8 @@ defmodule Exedra.Commands do
   def execute(["roomdescribeitem" | args], username), do: room_describe_item(username, args)
   def execute(["rdi"              | args], username), do: room_describe_item(username, args)
 
+  def execute(["createnpc" | args], username), do: create_npc(username, args)
+  def execute(["cn"        | args], username), do: create_npc(username, args)
 
   def execute(["get" | args], username), do: get_item(username, args)
   def execute(["g"   | args], username), do: get_item(username, args)
@@ -119,13 +121,30 @@ defmodule Exedra.Commands do
     # TODO: add "and" before final item.
     items = player.items
     |> Enum.map(fn(item_id) ->
-        {:ok, item} = Exedra.Item.get(item_id)
-        item.brief
-      end)
+      {:ok, item} = Exedra.Item.get(item_id)
+      item.brief
+    end)
     |> Enum.join(", ")
-    IO.puts "You are holding: " <> items <> "."
-  end
 
+    npcs = player.npcs
+    |> Enum.map(fn(npc_id) ->
+      {:ok, npc} = Exedra.NPC.get(npc_id)
+      npc.brief
+    end)
+    |> Enum.join(", ")
+
+    msg = cond do
+      String.length(items) > 0 && String.length(npcs) > 0 ->
+        "You are holding: " <> items <> ", " <> npcs <> "."
+      String.length(items) > 0 ->
+        "You are holding: " <> items <> "."
+      String.length(npcs) > 0 ->
+        "You are holding: " <> npcs <> "."
+      true ->
+        "You are holding nothing."
+    end
+    IO.puts msg
+  end
 
   def look(username) do
     {:ok, user} = Exedra.User.get(username)
@@ -154,6 +173,18 @@ defmodule Exedra.Commands do
         Exedra.Room.create_dir(player_room, direction, room_name, "")
         IO.puts "The mist parts in the " <> Exedra.Room.dir_atom_to_string(direction) <> "."
       end
+    end
+  end
+
+  def create_npc(username, args) do
+    if length(args) < 2 do
+      IO.puts "You must specify a name and brief description."
+    else
+      [name | description_list] = args
+      brief_description = Enum.join(description_list, " ")
+      {:ok, player} = Exedra.User.get(username)
+      Exedra.NPC.create(player, name, brief_description)
+      IO.puts "A " <> brief_description <> " forms in your hands."
     end
   end
 
@@ -250,11 +281,18 @@ defmodule Exedra.Commands do
 
       case Integer.parse(name_or_id) do
         {id, _} ->
-          if MapSet.member?(room.items, id) do
-            Exedra.Item.pickup(id, room, player)
-            {:ok, item} = Exedra.Item.get(id)
-            IO.puts "You pick up " <> item.brief <> "."
-          else
+          cond do
+            MapSet.member?(room.items, id) ->
+              Exedra.Item.pickup(id, room, player)
+              {:ok, item} = Exedra.Item.get(id)
+              IO.puts "You pick up " <> item.brief <> "."
+            MapSet.member?(room.npcs, id) ->
+              {:ok, npc} = Exedra.NPC.get(id)
+              # TODO: allow picking up NPCs with permissions
+              # Exedra.NPC.pickup(id, room, player)
+              # IO.puts "You pick up " <> item.brief <> "."
+              IO.puts npc.brief <>  " stares at you awkwardly."
+          true ->
             IO.puts "That isn't here."
           end
         :error ->
@@ -264,7 +302,19 @@ defmodule Exedra.Commands do
             item.name == name
           end
           if item_id == nil do
-            IO.puts "That is not here."
+            npc_id = Enum.find room.npcs, fn(npc_id) ->
+              {:ok, npc} = Exedra.NPC.get(npc_id)
+              npc.name == name
+            end
+            if npc_id == nil do
+              IO.puts "That is not here."
+            else
+              {:ok, npc} = Exedra.NPC.get(npc_id)
+              # TODO: fix duplication with ID get above
+              # TODO: allow picking up NPCs with permissions
+              # Exedra.NPC.pickup(npc_id, room, player)
+              IO.puts npc.brief <>  " eyes you suspiciously."
+            end
           else
             Exedra.Item.pickup(item_id, room, player)
             {:ok, item} = Exedra.Item.get(item_id)
@@ -284,13 +334,19 @@ defmodule Exedra.Commands do
       {:ok, player} = Exedra.User.get(username)
       case Integer.parse(name_or_id) do
         {id, _} ->
-          if MapSet.member?(player.items, id) do
-            {:ok, room} = Exedra.Room.get(player.room_id)
-            Exedra.Item.drop(id, room, player)
-            {:ok, item} = Exedra.Item.get(id)
-            IO.puts "You drop " <> item.brief <> "."
-          else
-            IO.puts "That isn't here."
+          cond do
+            MapSet.member?(player.items, id) ->
+              {:ok, room} = Exedra.Room.get(player.room_id)
+              Exedra.Item.drop(id, room, player)
+              {:ok, item} = Exedra.Item.get(id)
+              IO.puts "You drop " <> item.brief <> "."
+            MapSet.member?(player.npcs, id) ->
+              {:ok, npc} = Exedra.NPC.get(id)
+              {:ok, room} = Exedra.Room.get(player.room_id)
+              Exedra.NPC.drop(id, room, player)
+              IO.puts "You set " <> npc.brief <> " down carefully."
+            true ->
+              IO.puts "That isn't here."
           end
         :error ->
           name = name_or_id
@@ -299,7 +355,18 @@ defmodule Exedra.Commands do
             item.name == name
           end
           if item_id == nil do
-            IO.puts "That is not here."
+            npc_id = Enum.find player.npcs, fn(npc_id) ->
+              {:ok, npc} = Exedra.NPC.get(npc_id)
+              npc.name == name
+            end
+            if npc_id == nil do
+              IO.puts "That is not here."
+            else
+              {:ok, room} = Exedra.Room.get(player.room_id)
+              Exedra.NPC.drop(npc_id, room, player)
+              {:ok, npc} = Exedra.NPC.get(npc_id)
+              IO.puts "You deposit " <> npc.brief <> " carefully."
+            end
           else
             {:ok, room} = Exedra.Room.get(player.room_id)
             Exedra.Item.drop(item_id, room, player)

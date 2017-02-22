@@ -5,7 +5,7 @@ defmodule Exedra.User do
   defmodule Data do
     @enforce_keys [:name, :room_id, :password]
     # TODO: don't store pass in plaintext
-    defstruct name: "", password: "", room_id: 0, items: MapSet.new
+    defstruct name: "", password: "", room_id: 0, items: MapSet.new, npcs: MapSet.new
   end
 
   def load() do
