@@ -3,7 +3,8 @@ defmodule Exedra.SessionManager do
 
   defmodule Data do
     @enforce_keys [:user, :pid]
-    defstruct user: "", pid: 0
+    defstruct user: "",
+              pid:  0
   end
 
   @spec get(GenServer.server, String.t) :: {:ok, pid} | :error

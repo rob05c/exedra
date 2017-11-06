@@ -7,7 +7,13 @@ defmodule Exedra.Room do
 
   defmodule Data do
     @enforce_keys [:id, :title, :description]
-    defstruct id: 0, title: "", description: "", exits: %{}, items: MapSet.new, players: MapSet.new, npcs: MapSet.new
+    defstruct id:          0,
+              title:       "",
+              description: "",
+              exits:       %{},
+              items:       MapSet.new,
+              players:     MapSet.new,
+              npcs:        MapSet.new
   end
 
   @room_zero %{

@@ -12,7 +12,15 @@ defmodule Exedra.NPC do
     # exit_description A stately elf leaves to the $dir
     # entry_description A stately elf enters from the $dir
     # plural_brief elves
-    defstruct id: 0, name: "", brief: "", description: "", room_description: "", dead_description: "", exit_description: "", entry_description: "", plural_brief: ""
+    defstruct id:                0,
+              name:              "",
+              brief:             "",
+              description:       "",
+              room_description:  "",
+              dead_description:  "",
+              exit_description:  "",
+              entry_description: "",
+              plural_brief:      ""
   end
 
   def load() do
