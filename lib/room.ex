@@ -17,7 +17,7 @@ defmodule Exedra.Room do
 
   def load() do
     File.mkdir_p! Path.dirname(@data_file)
-    case :ets.file2tab(String.to_char_list(@data_file)) do
+    case :ets.file2tab(String.to_charlist(@data_file)) do
       {:ok, :rooms} ->
         IO.puts "Rooms file loaded"
         :ok
@@ -34,7 +34,7 @@ defmodule Exedra.Room do
     new_room = %Exedra.Room.Data{id: next_id, title: title, description: description}
     :ets.insert_new(:rooms, {next_id, new_room})
     # debug - writing all objects to disk every change doesn't scale
-    :ets.tab2file(:rooms,String.to_char_list(@data_file), sync: true)
+    :ets.tab2file(:rooms,String.to_charlist(@data_file), sync: true)
 
     new_room
   end
@@ -46,7 +46,7 @@ defmodule Exedra.Room do
     :ets.insert(:rooms, {from_room.id, from_room})
 
     # debug - writing all objects to disk every change doesn't scale
-    :ets.tab2file(:rooms,String.to_char_list(@data_file), sync: true)
+    :ets.tab2file(:rooms,String.to_charlist(@data_file), sync: true)
   end
 
   def link_rooms(from_room, to_room, direction) do
@@ -67,7 +67,7 @@ defmodule Exedra.Room do
     :ets.insert(:rooms, {room.id, room})
 
     # debug - writing all users to disk every time someone moves doesn't scale.
-    :ets.tab2file(:rooms, String.to_char_list(@data_file), sync: true)
+    :ets.tab2file(:rooms, String.to_charlist(@data_file), sync: true)
   end
 
   def print(room, brief, self_player_name) do

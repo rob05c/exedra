@@ -18,10 +18,10 @@ defmodule Exedra.SSHManager do
 
     app_dir     = Application.app_dir master_app
     priv_dir    = Path.join([app_dir, "priv", "exedra"])
-                  |> String.to_char_list
+                  |> String.to_charlist
 
     # credentials = Application.get_env(:exedra, :credentials, [])
-                  # |> Enum.map(fn({u,p}) -> {String.to_char_list(u), String.to_char_list(p)} end)
+                  # |> Enum.map(fn({u,p}) -> {String.to_charlist(u), String.to_charlist(p)} end)
     credentials = []
 
     GenServer.cast self(), :start
@@ -35,19 +35,19 @@ defmodule Exedra.SSHManager do
       shell:          fn(user) -> Exedra.REPL.start(user) end,
       system_dir:     priv_dir,
       user_dir:       priv_dir,
-      # password:       String.to_char_list(""),
+      # password:       String.to_charlist(""),
       # user_passwords: credentials,
       auth_method_kb_interactive_data: fn(ip_port, user_cl, service) ->
         user = String.Chars.to_string(user_cl)
         if Exedra.User.exists?(user) do
-          {String.to_char_list("EXEDRA"),
-           String.to_char_list("Enter Password for " <> user <> ":"),
-           String.to_char_list("Password: "),
+          {String.to_charlist("EXEDRA"),
+           String.to_charlist("Enter Password for " <> user <> ":"),
+           String.to_charlist("Password: "),
            false}
         else
-          {String.to_char_list("EXEDRA"),
-           String.to_char_list("Creating New User " <> user <> ":"),
-           String.to_char_list("Create a new password:"),
+          {String.to_charlist("EXEDRA"),
+           String.to_charlist("Creating New User " <> user <> ":"),
+           String.to_charlist("Create a new password:"),
            false}
         end
       end,

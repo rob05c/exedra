@@ -60,9 +60,9 @@ defmodule Exedra.REPL do
 
   # TODO: logout existing logins for this player
   def login(player_name, loop_pid) do
-    SessionManager.set(SessionManager, player_name, loop_pid)
+    SessionManager.set SessionManager, player_name, loop_pid
     {:ok, player} = Exedra.User.get(player_name)
     {:ok, room} = Exedra.Room.get(player.room_id)
-    Exedra.Room.set(%{room | players: MapSet.put(room.players, player_name)})
+    Exedra.Room.set %{room | players: MapSet.put(room.players, player_name)}
   end
 end

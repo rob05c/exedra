@@ -17,7 +17,7 @@ defmodule Exedra.NPC do
 
   def load() do
     File.mkdir_p! Path.dirname(@data_file)
-    case :ets.file2tab(String.to_char_list(@data_file)) do
+    case :ets.file2tab(String.to_charlist(@data_file)) do
       {:ok, :npcs} ->
         IO.puts "NPCs file loaded"
         :ok
@@ -34,7 +34,7 @@ defmodule Exedra.NPC do
     :ets.insert_new(:npcs, {next_id, new_npc})
 
     # debug - writing all objects to disk every change doesn't scale
-    :ets.tab2file(:npcs, String.to_char_list(@data_file), sync: true)
+    :ets.tab2file(:npcs, String.to_charlist(@data_file), sync: true)
 
     Exedra.User.set(%{player | npcs: MapSet.put(player.npcs, new_npc.id)})
 
@@ -65,6 +65,6 @@ defmodule Exedra.NPC do
     :ets.insert(:npcs, {npc.id, npc})
 
     # debug - writing all users to disk every time someone moves doesn't scale.
-    :ets.tab2file(:npcs, String.to_char_list(@data_file), sync: true)
+    :ets.tab2file(:npcs, String.to_charlist(@data_file), sync: true)
   end
 end

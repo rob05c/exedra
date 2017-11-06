@@ -5,12 +5,18 @@ defmodule Exedra.User do
   defmodule Data do
     @enforce_keys [:name, :room_id, :password]
     # TODO: don't store pass in plaintext
-    defstruct name: "", password: "", room_id: 0, items: MapSet.new, npcs: MapSet.new
+    defstruct(
+      name: "",
+      password: "",
+      room_id: 0,
+      items: MapSet.new,
+      npcs: MapSet.new,
+    )
   end
 
   def load() do
     File.mkdir_p! Path.dirname(@data_file)
-    case :ets.file2tab(String.to_char_list(@data_file)) do
+    case :ets.file2tab(String.to_charlist(@data_file)) do
       {:ok, :users} ->
         IO.puts "Users file loaded"
         :ok
@@ -34,7 +40,7 @@ defmodule Exedra.User do
         new_user = %Exedra.User.Data{name: user_name, password: pass, room_id: default_room}
         :ets.insert_new(:users, {user_name, new_user})
         # TODO: dump all object tables at once
-        :ets.tab2file(:users,String.to_char_list(@data_file), sync: true)
+        :ets.tab2file(:users,String.to_charlist(@data_file), sync: true)
         true
     end
   end
@@ -57,7 +63,7 @@ defmodule Exedra.User do
     :ets.insert(:users, {user.name, user})
 
     # debug - writing all users to disk every time someone moves doesn't scale.
-    :ets.tab2file(:users, String.to_char_list(@data_file), sync: true)
+    :ets.tab2file(:users, String.to_charlist(@data_file), sync: true)
   end
 
 end

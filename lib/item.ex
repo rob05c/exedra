@@ -13,7 +13,7 @@ defmodule Exedra.Item do
 
   def load() do
     File.mkdir_p! Path.dirname(@data_file)
-    case :ets.file2tab(String.to_char_list(@data_file)) do
+    case :ets.file2tab(String.to_charlist(@data_file)) do
       {:ok, :items} ->
         IO.puts "Items file loaded"
         :ok
@@ -30,7 +30,7 @@ defmodule Exedra.Item do
     :ets.insert_new(:items, {next_id, new_item})
 
     # debug - writing all objects to disk every change doesn't scale
-    :ets.tab2file(:items, String.to_char_list(@data_file), sync: true)
+    :ets.tab2file(:items, String.to_charlist(@data_file), sync: true)
 
     Exedra.User.set(%{player | items: MapSet.put(player.items, new_item.id)})
 
@@ -61,6 +61,6 @@ defmodule Exedra.Item do
     :ets.insert(:items, {item.id, item})
 
     # debug - writing all users to disk every time someone moves doesn't scale.
-    :ets.tab2file(:items, String.to_char_list(@data_file), sync: true)
+    :ets.tab2file(:items, String.to_charlist(@data_file), sync: true)
   end
 end
