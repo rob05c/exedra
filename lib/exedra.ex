@@ -7,7 +7,8 @@ defmodule Exedra do
   alias Exedra.SSHManager, as: SSHManager
   alias Exedra.SessionManager, as: SessionManager
 
-  @spec start(any, any) :: Supervisor.on_start
+  # @spec start(any, any) :: Supervisor.on_start
+  @spec start(any, any) :: {:error, any} | {:ok, pid} | {:ok, pid, any}
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
 

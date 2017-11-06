@@ -6,7 +6,7 @@ defmodule Exedra.SessionManager do
     defstruct user: "", pid: 0
   end
 
-  @spec get(GenServer.server, String.t) :: {:reply, {:ok, Data} | :error, %{}}
+  @spec get(GenServer.server, String.t) :: {:ok, pid} | :error
   def get(server, user) do
     GenServer.call server, {:get, user}
   end
@@ -22,12 +22,13 @@ defmodule Exedra.SessionManager do
   end
 
 
-  @spec init({String.t, integer}) :: {:ok, %{}}
+  @spec init([]) :: {:ok, %{}}
   def init([]) do
     {:ok,  %{}}
   end
 
-  @spec start_link(String.t) :: GenServer.on_start
+  # @spec start_link(String.t) :: GenServer.on_start
+  @spec start_link(atom | {:global, any} | {:via, atom, any}) :: :ignore | {:error, any} | {:ok, pid}
   def start_link(name) do
     GenServer.start_link __MODULE__, [], name: name
   end
