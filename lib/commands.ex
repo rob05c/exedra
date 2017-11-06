@@ -100,39 +100,43 @@ help                                ?
     Exedra.Room.message_players(room, player_name, self_msg, others_msg) # TODO add period logic
   end
 
-  def tell(player_name, args) do
-    tell_color = Exedra.ANSI.colors[:yellow]
-    reset_color = Exedra.ANSI.colors[:reset]
-    if length(args) < 2 do
-      no_such_player_msg = tell_color <> "Who do you want to tell?" <> reset_color
-      IO.puts no_such_player_msg
-    else
-      [target_player_name | said_words] = args
-      if target_player_name == player_name do
-        said = Enum.join(said_words, " ")
-        crazy_msg = tell_color <> "You think to yourself, \"" <> ensure_sentence(said) <> "\"" <> reset_color
-        IO.puts crazy_msg
-      else
-        case Exedra.User.get(target_player_name) do
-          {:ok, _} ->
-            case Exedra.SessionManager.get(Exedra.SessionManager, target_player_name) do
-              {:ok, msg_pid} ->
-                said = Enum.join(said_words, " ")
-                self_msg = tell_color <> "You tell " <> String.capitalize(target_player_name) <> ", \"" <>  ensure_sentence(said) <> "\"" <> reset_color
-                other_msg = tell_color <> String.capitalize(player_name) <> " tells you, \"" <>  ensure_sentence(said) <> "\"" <> reset_color
-                send msg_pid, {:message, other_msg}
-                IO.puts self_msg
-              :error ->
-                target_not_online_msg = tell_color <> "A wave of lonliness washes over you." <> reset_color
-                IO.puts target_not_online_msg
-            end
-          _ ->
-            "You don't know anyone named '" <> target_player_name <> "."
-        end
-      end
+  def tell_color(), do: Exedra.ANSI.colors[:yellow]
+  def reset_color(), do: Exedra.ANSI.colors[:reset]
+  def tell_no_such_player_msg(), do: tell_color() <> "Who do you want to tell?" <> reset_color()
+  def tell_no_found_player_msg(name), do: tell_color() <> "You don't know anyone named \"" <> name <> "\"." <> reset_color()
+  def tell_target_not_online_msg(), do: tell_color() <> "A wave of lonliness washes over you." <> reset_color()
+  def tell_crazy_msg(text), do: tell_color() <> "You think to yourself, \"" <> ensure_sentence(text) <> "\"" <> reset_color()
+  def tell_self_msg(target_player_name, said), do: tell_color() <> "You tell " <> String.capitalize(target_player_name) <> ", \"" <>  ensure_sentence(said) <> "\"" <> reset_color()
+  def tell_other_msg(player_name, said), do: tell_color() <> String.capitalize(player_name) <> " tells you, \"" <>  ensure_sentence(said) <> "\"" <> reset_color()
+
+  @spec tell(String.t, list(String.t)) :: :ok
+  def tell(_, args) when length(args) < 2,                 do: IO.puts tell_no_such_player_msg()
+  def tell(player_name, [player_name | said_words]),       do: IO.puts tell_crazy_msg(Enum.join(said_words, " "))
+  def tell(player_name, [target_player_name | said_words]) do
+    case Exedra.User.get(target_player_name) do
+      {:ok, _} ->
+        tell_user(player_name, target_player_name, said_words)
+      _ ->
+        IO.puts tell_no_found_player_msg(target_player_name)
     end
   end
 
+  @spec tell_user(String.t, String.t, nonempty_list(String.t)) :: :ok
+  def tell_user(player_name, target_player_name, said_words) do
+    case Exedra.SessionManager.get(Exedra.SessionManager, target_player_name) do
+      {:ok, msg_pid} ->
+        tell_connected_user(player_name, target_player_name, said_words, msg_pid)
+      :error ->
+        IO.puts tell_target_not_online_msg()
+    end
+  end
+
+  @spec tell_connected_user(String.t, String.t, nonempty_list(String.t), pid) :: :ok
+  def tell_connected_user(player_name, target_player_name, said_words, target_pid) do
+    said = Enum.join(said_words, " ")
+    send target_pid, {:message, tell_other_msg(player_name, said)}
+    IO.puts tell_self_msg(target_player_name, said)
+  end
 
   def ensure_sentence(msg) do
     msg = case String.length(msg) do
