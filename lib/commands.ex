@@ -49,8 +49,41 @@ defmodule Exedra.Commands do
 
   def execute(["tell" | args], username), do: tell(username, args)
 
+  def execute(["help" | _], _), do: help()
+  def execute(["h" | _], _), do: help()
+  def execute(["?" | _], _), do: help()
+
   def execute([""], _), do: nothing()
   def execute(_, _), do: unknown()
+
+  def help() do
+    msg = """
+north                               n
+east                                e
+south                               s
+northwest                           nw
+northeast                           ne
+southwest                           sw
+southeast                           se
+
+look                                l
+quicklook                           ql
+get              <id>               g
+drop             <id>               d
+items                               i
+say              <text>             '
+tell             <player> <text>
+
+createroom       <dir>  <fragment>  cr
+createitem       <id>   <fragment>  ci
+describeitem     <id>   <paragraph> di
+roomdescribeitem <id>   <sentence>  rdi
+createnpc        <name> <fragment>  cn
+
+help                                ?
+"""
+    IO.puts msg
+  end
 
   def say(player_name, args) do
     say_color = Exedra.ANSI.colors[:cyan]
