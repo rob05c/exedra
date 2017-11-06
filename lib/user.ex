@@ -9,7 +9,8 @@ defmodule Exedra.User do
               password: "",
               room_id:  0,
               items:    MapSet.new,
-              npcs:     MapSet.new
+              npcs:     MapSet.new,
+              currency: 0
   end
 
   def load() do

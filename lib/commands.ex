@@ -31,6 +31,8 @@ defmodule Exedra.Commands do
   def execute(["di"               | args], username), do: describe_item(     username, args)
   def execute(["roomdescribeitem" | args], username), do: room_describe_item(username, args)
   def execute(["rdi"              | args], username), do: room_describe_item(username, args)
+  def execute(["createcurrency"   | args], username), do: create_currency(   username, args)
+  def execute(["cc"               | args], username), do: create_currency(   username, args)
 
   def execute(["createnpc" | args], username), do: create_npc(username, args)
   def execute(["cn"        | args], username), do: create_npc(username, args)
@@ -149,6 +151,18 @@ help                                ?
     end
   end
 
+  def currency_text_singular() do
+    "gold coin"
+  end
+
+  def currency_text_plural() do
+    "gold coins"
+  end
+
+  def currency_color() do
+    Exedra.ANSI.colors[:yellow]
+  end
+
   def items(username) do
     {:ok, player} = Exedra.User.get(username)
     # TODO: add "and" before final item.
@@ -176,6 +190,16 @@ help                                ?
       true ->
         "You are holding nothing."
     end
+
+    msg = cond do
+      player.currency == 1 ->
+        msg <> "\n" <> currency_color() <> Integer.to_string(player.currency) <> " " <> currency_text_singular() <> Exedra.ANSI.colors[:reset]
+      player.currency > 1 ->
+        msg <> "\n" <> currency_color() <> Integer.to_string(player.currency) <> " " <> currency_text_plural() <> Exedra.ANSI.colors[:reset]
+      true ->
+        msg
+    end
+
     IO.puts msg
   end
 
@@ -230,6 +254,28 @@ help                                ?
       {:ok, player} = Exedra.User.get(username)
       Exedra.Item.create(player, name, brief_description)
       IO.puts "A " <> brief_description <> " materializes in your hands."
+    end
+  end
+
+  @spec create_currency(String.t, list(String.t)) :: :ok
+  def create_currency(username, args) do
+    if length(args) < 1 do
+      IO.puts "You must specify a quantity."
+    else
+      num_str = List.first(args)
+
+      case Integer.parse(num_str) do
+        :error ->
+          IO.puts "HOW many?"
+        {num, _} ->
+          {:ok, player} = Exedra.User.get(username)
+          Exedra.User.set(%{player | currency: player.currency + num}) # TODO atomic/lock; race condition
+          if num == 1 do
+            IO.puts num_str <> " " <> currency_text_singular() <> " materializes in your hands."
+          else
+            IO.puts num_str <> " " <> currency_text_plural() <> " materialize in your hands."
+          end
+      end
     end
   end
 
@@ -302,7 +348,62 @@ help                                ?
     end
   end
 
+  @doc """
+  Get the requested currency from the room, if the command is of the form '(num|) currency_noun()', e.g. 'get coin' or 'get 10 gold'. Otherwise, the "that isn't here" message is sent.
 
+  This should be called after get_item(), to give items priority. E.g. if the room has  "a special silver coin", "get coin" should get that first.
+
+  Must be given a nonempty args list - get_item called before this should return if len(args)<1
+  """
+  @spec get_currency(String.t, nonempty_list(String.t)) :: :ok
+  def get_currency(username, args) do
+    # TODO: combine with get_item() to only call Integer.parse, User.get once.
+    [num_or_noun|noun_rest] = args
+    case Integer.parse(num_or_noun) do
+      {num, _} ->
+        if length(noun_rest) < 1 do
+          IO.puts not_here_text()
+        else
+          noun = List.first(noun_rest)
+          get_currency_noun_num(username, noun, num)
+        end
+      :error ->
+        noun = num_or_noun
+        get_currency_noun_num(username, noun, :all)
+    end
+  end
+
+  @doc """
+  Checks if the given noun is an alias for currency, and gets the requested amount, which may be :all
+  """
+  @spec get_currency_noun_num(String.t, String.t, pos_integer|:all) :: :ok
+  def get_currency_noun_num(username, noun, num) do
+    {:ok, player} = Exedra.User.get(username)
+    {:ok, room} = Exedra.Room.get(player.room_id)
+    if !MapSet.member?(currency_nouns(), noun) || room.currency == 0 do
+      IO.puts not_here_text()
+    else
+      num = if num == :all || num > room.currency do
+        room.currency
+      else
+        num
+      end
+      if num < 1 do
+        IO.puts not_here_text()
+      else
+        # TODO atomic/lock; race condition
+        Exedra.User.set %{player | currency: player.currency + num}
+        Exedra.Room.set %{room | currency: room.currency - num}
+        if num == 1 do
+          IO.puts "You get a " <> currency_text_singular() <> "."
+        else
+          IO.puts "You get " <> Integer.to_string(num) <> " " <> currency_text_plural() <> "."
+        end
+      end
+    end
+  end
+
+  # TODO use guards to reduce indentation
   def get_item(username, args) do
     if length(args) < 1 do
       IO.puts "What do you want to get?"
@@ -325,8 +426,8 @@ help                                ?
               # Exedra.NPC.pickup(id, room, player)
               # IO.puts "You pick up " <> item.brief <> "."
               IO.puts npc.brief <>  " stares at you awkwardly."
-          true ->
-            IO.puts "That isn't here."
+            true ->
+              get_currency(username, args)
           end
         :error ->
           name = name_or_id
@@ -340,7 +441,7 @@ help                                ?
               npc.name == name
             end
             if npc_id == nil do
-              IO.puts "That is not here."
+              get_currency(username, args)
             else
               {:ok, npc} = Exedra.NPC.get(npc_id)
               # TODO: fix duplication with ID get above
@@ -354,6 +455,60 @@ help                                ?
             IO.puts "You pick up " <> item.brief <> "."
           end
       end
+    end
+  end
+
+  def currency_nouns(), do: MapSet.new(["currency","gold","coin"])
+  def not_here_text(), do: "That isn't here."
+  def not_enough_currency_text(), do: "You don't have that much coin."
+
+  @doc """
+  Drops the requested currency held, if the drop command is of the form 'drop (num|) currency_noun()', e.g. 'drop coin' or 'drop 10 gold'. Otherwise, the "you're not holding that" message is sent.
+
+  This should be called after drop_item(), to give items priority. E.g. if a player has "a special silver coin", "drop coin" should drop that first.
+
+  Must be given a nonempty args list - drop_item called before this should return if len(args)<1
+  """
+  @spec drop_currency(String.t, nonempty_list(String.t)) :: :ok
+  def drop_currency(username, args) do
+    # TODO: combine with drop_item() to only call Integer.parse, User.get once.
+    [num_or_noun|noun_rest] = args
+    case Integer.parse(num_or_noun) do
+      {num, _} ->
+        if length(noun_rest) < 1 do
+          IO.puts not_here_text()
+        else
+          noun = List.first(noun_rest)
+          drop_currency_num_noun(username, num, noun)
+        end
+      :error ->
+        noun = num_or_noun
+        drop_currency_num_noun(username, 1, noun)
+    end
+  end
+
+  @doc """
+  Checks if the given noun is an alias for currency, and drops the requested amount.
+  """
+  @spec drop_currency_num_noun(String.t, pos_integer, String.t) :: :ok
+  def drop_currency_num_noun(username, num, noun) do
+    if MapSet.member? currency_nouns(), noun do
+      {:ok, player} = Exedra.User.get(username)
+      if player.currency >= num do
+        {:ok, room} = Exedra.Room.get(player.room_id)
+        # TODO atomic/lock; race condition
+        Exedra.Room.set %{room | currency: room.currency + num}
+        Exedra.User.set %{player | currency: player.currency - num}
+        if num == 1 do
+          IO.puts "You drop a " <> currency_text_singular() <> "."
+        else
+          IO.puts "You drop " <> Integer.to_string(num) <> " " <> currency_text_plural() <> "."
+        end
+      else
+        IO.puts not_enough_currency_text()
+      end
+    else
+      IO.puts not_here_text()
     end
   end
 
@@ -379,7 +534,7 @@ help                                ?
               Exedra.NPC.drop(id, room, player)
               IO.puts "You set " <> npc.brief <> " down carefully."
             true ->
-              IO.puts "That isn't here."
+              drop_currency(username, args)
           end
         :error ->
           name = name_or_id
@@ -393,7 +548,7 @@ help                                ?
               npc.name == name
             end
             if npc_id == nil do
-              IO.puts "That is not here."
+              drop_currency(username, args)
             else
               {:ok, room} = Exedra.Room.get(player.room_id)
               Exedra.NPC.drop(npc_id, room, player)

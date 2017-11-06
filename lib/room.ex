@@ -13,7 +13,8 @@ defmodule Exedra.Room do
               exits:       %{},
               items:       MapSet.new,
               players:     MapSet.new,
-              npcs:        MapSet.new
+              npcs:        MapSet.new,
+              currency:    0
   end
 
   @room_zero %{
@@ -134,6 +135,16 @@ defmodule Exedra.Room do
     |> Map.keys
     |> Enum.map(fn(dir) -> dir_atom_to_string(dir) end)
     |> Enum.join(", ")
+
+
+    s = s <> case room.currency do
+               0 ->
+                 s
+               1 ->
+                 s <> Exedra.Commands.currency_color() <> "A " <> Exedra.Commands.currency_text_singular() <> " is here." <> ANSI.colors[:reset] <> "\n"
+               _ ->
+                 s <> Exedra.Commands.currency_color() <> Integer.to_string(room.currency) <> " " <> Exedra.Commands.currency_text_plural() <> " are here." <> ANSI.colors[:reset] <> "\n"
+             end
 
     s = s <> ANSI.colors[:blue] <> if String.length(exits) == 0 do
       "There are no visible exits."

@@ -12,7 +12,8 @@ defmodule Exedra.Item do
               name:             "",
               brief:            "",
               description:      "",
-              room_description: ""
+              room_description: "",
+              currency:         0
   end
 
   def load() do

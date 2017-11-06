@@ -20,7 +20,8 @@ defmodule Exedra.NPC do
               dead_description:  "",
               exit_description:  "",
               entry_description: "",
-              plural_brief:      ""
+              plural_brief:      "",
+              currency:          0
   end
 
   def load() do
