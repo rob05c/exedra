@@ -155,17 +155,9 @@ help                                ?
     end
   end
 
-  def currency_text_singular() do
-    "gold coin"
-  end
-
-  def currency_text_plural() do
-    "gold coins"
-  end
-
-  def currency_color() do
-    Exedra.ANSI.colors[:yellow]
-  end
+  def currency_text_singular(), do: "gold coin"
+  def currency_text_plural(),   do: "gold coins"
+  def currency_color(),         do: Exedra.ANSI.colors[:yellow]
 
   def items(username) do
     {:ok, player} = Exedra.User.get(username)
@@ -237,118 +229,139 @@ help                                ?
     end
   end
 
-  def create_npc(username, args) do
-    if length(args) < 2 do
-      IO.puts "You must specify a name and brief description."
+  def create_no_name_desc_msg(), do: "You must specify a name and brief description."
+  def create_msg(brief_description), do: "A " <> brief_description <> " forms in your hands."
+
+  @spec create_npc(String.t, list(String.t)) :: :ok
+  def create_npc(_, args) when length(args) < 2, do: IO.puts create_no_name_desc_msg()
+  def create_npc(username, args) when length(args) >= 2 do
+    [name | description_list] = args
+    brief_description = Enum.join(description_list, " ")
+    {:ok, player} = Exedra.User.get(username)
+    Exedra.NPC.create(player, name, brief_description)
+    IO.puts create_msg(brief_description)
+  end
+
+  @spec create_item(String.t, list(String.t)) :: :ok
+  def create_item(_, args) when length(args) < 2, do: IO.puts create_no_name_desc_msg()
+  def create_item(username, args) do
+    [name | description_list] = args
+    brief_description = Enum.join(description_list, " ")
+    {:ok, player} = Exedra.User.get(username)
+    Exedra.Item.create(player, name, brief_description)
+    IO.puts create_msg(brief_description)
+  end
+
+  def create_currency_no_name_desc_msg(), do: "You must specify a quantity."
+  def create_currency_no_num_str(), do: "HOW many?"
+  def create_currency_msg(num_str) do
+    if num_str == "1" do
+      num_str <> " " <> currency_text_singular() <> " materializes in your hands."
     else
-      [name | description_list] = args
-      brief_description = Enum.join(description_list, " ")
-      {:ok, player} = Exedra.User.get(username)
-      Exedra.NPC.create(player, name, brief_description)
-      IO.puts "A " <> brief_description <> " forms in your hands."
+      num_str <> " " <> currency_text_plural() <> " materialize in your hands."
     end
   end
 
-  def create_item(username, args) do
-    if length(args) < 2 do
-      IO.puts "You must specify a name and brief description."
-    else
-      [name | description_list] = args
-      brief_description = Enum.join(description_list, " ")
-      {:ok, player} = Exedra.User.get(username)
-      Exedra.Item.create(player, name, brief_description)
-      IO.puts "A " <> brief_description <> " materializes in your hands."
-    end
-  end
 
   @spec create_currency(String.t, list(String.t)) :: :ok
+  def create_currency(_, args) when length(args) < 1, do: IO.puts create_currency_no_name_desc_msg()
   def create_currency(username, args) do
-    if length(args) < 1 do
-      IO.puts "You must specify a quantity."
-    else
-      num_str = List.first(args)
-
-      case Integer.parse(num_str) do
-        :error ->
-          IO.puts "HOW many?"
-        {num, _} ->
-          {:ok, player} = Exedra.User.get(username)
-          Exedra.User.set(%{player | currency: player.currency + num}) # TODO atomic/lock; race condition
-          if num == 1 do
-            IO.puts num_str <> " " <> currency_text_singular() <> " materializes in your hands."
-          else
-            IO.puts num_str <> " " <> currency_text_plural() <> " materialize in your hands."
-          end
-      end
+    num_str = List.first(args)
+    case Integer.parse(num_str) do
+      :error ->
+        IO.puts create_currency_no_num_str()
+      {num, _} ->
+        {:ok, player} = Exedra.User.get(username)
+        Exedra.User.set(%{player | currency: player.currency + num}) # TODO atomic/lock; race condition
+        IO.puts create_currency_msg(num_str)
     end
   end
 
+  def describe_item_too_short_msg(), do: "What do you want to describe?"
+  def describe_item_no_item_msg(),   do: "You are not carrying that."
+  def room_describe_item_describe_msg(brief),  do: "A vision of " <> brief <> " on the ground flashes in your mind's eye."
+  def describe_item_describe_msg(brief),  do: "A vision of " <> brief <> " flashes in your mind's eye."
+
+  @spec room_describe_item(String.t, list(String.t)) :: :ok
+  def room_describe_item(_, args) when length(args) < 5, do: IO.puts describe_item_too_short_msg() # len(args) >= 5 because name_or_id is arg 1, and the minimal grammatically correct description is 'article noun verb adverb', e.g. 'the sword lies here'
   def room_describe_item(username, args) do
-    # len(args) >= 5 because name_or_id is arg 1, and the minimal grammatically correct description is 'article noun verb adverb', e.g. 'the sword lies here'
-    if length(args) < 5 do
-      IO.puts "What do you want to describe?"
+    [name_or_id | description_words] = args
+    room_description = Enum.join(description_words, " ")
+    {:ok, player} = Exedra.User.get(username)
+    case Integer.parse(name_or_id) do
+      {id, _} ->
+        room_describe_item_by_id(player, room_description, id)
+      :error ->
+        name = name_or_id
+        room_describe_item_by_name(player, room_description, name)
+    end
+  end
+
+  @spec room_describe_item_by_id(Exedra.User.Data, String.t, integer) :: :ok
+  def room_describe_item_by_id(player, room_description, id) do
+    if MapSet.member?(player.items, id) do
+      {:ok, item} = Exedra.Item.get(id)
+      Exedra.Item.set %{item | room_description: room_description}
+      IO.puts room_describe_item_describe_msg(item.brief)
     else
-      [name_or_id | description_words] = args
-      room_description = Enum.join(description_words, " ")
-      {:ok, player} = Exedra.User.get(username)
-      case Integer.parse(name_or_id) do
-        {id, _} ->
-          if MapSet.member?(player.items, id) do
-            {:ok, item} = Exedra.Item.get(id)
-            Exedra.Item.set %{item | room_description: room_description}
-            IO.puts "A vision of " <> item.brief <> " on the ground flashes in your mind's eye."
-          else
-            IO.puts "You aren't carrying that."
-          end
-        :error ->
-          name = name_or_id
-          item_id = Enum.find player.items, fn(item_id) ->
-            {:ok, item} = Exedra.Item.get(item_id)
-            item.name == name
-          end
-          if item_id == nil do
-            IO.puts "You are not carrying that."
-          else
-            {:ok, item} = Exedra.Item.get(item_id)
-            Exedra.Item.set %{item | room_description: room_description}
-            IO.puts "A vision of " <> item.brief <> " on the ground flashes in your mind's eye."
-          end
-      end
+      IO.puts describe_item_no_item_msg()
+    end
+  end
+
+  @spec room_describe_item_by_name(Exedra.User, String.t, String.t) :: :ok
+  def room_describe_item_by_name(player, room_description, name) do
+    item_id = Enum.find player.items, fn(item_id) ->
+      {:ok, item} = Exedra.Item.get(item_id)
+      item.name == name
+    end
+    if item_id == nil do
+      IO.puts describe_item_no_item_msg()
+    else
+      {:ok, item} = Exedra.Item.get(item_id)
+      Exedra.Item.set %{item | room_description: room_description}
+      IO.puts room_describe_item_describe_msg(item.brief)
     end
   end
 
   # TODO: abstract duplication with room_describe_item
+  @spec describe_item(String.t, list(String.t)) :: :ok
+  def describe_item(_, args) when length(args) < 5, do: IO.puts describe_item_too_short_msg() # len(args) >= 5 because name_or_id is arg 1, and the minimal grammatically correct description is 'article noun verb noun', e.g. 'the sword lies here'
   def describe_item(username, args) do
-    # len(args) >= 5 because name_or_id is arg 1, and the minimal grammatically correct description is 'article noun verb adverb', e.g. 'the sword lies here'
-    if length(args) < 5 do
-      IO.puts "What do you want to describe?"
+    [name_or_id | description_words] = args
+    description = Enum.join(description_words, " ")
+    {:ok, player} = Exedra.User.get(username)
+    case Integer.parse(name_or_id) do
+      {id, _} ->
+        describe_item_by_id(player, description, id)
+      :error ->
+        name = name_or_id
+        describe_item_by_name(player, description, name)
+    end
+  end
+
+  @spec describe_item_by_id(Exedra.User.Data, String.t, integer) :: :ok
+  def describe_item_by_id(player, description, id) do
+    if MapSet.member?(player.items, id) do
+      {:ok, item} = Exedra.Item.get(id)
+      Exedra.Item.set %{item | description: description}
+      IO.puts describe_item_describe_msg(item.brief)
     else
-      [name_or_id | description_words] = args
-      description = Enum.join(description_words, " ")
-      {:ok, player} = Exedra.User.get(username)
-      case Integer.parse(name_or_id) do
-        {id, _} ->
-          if MapSet.member?(player.items, id) do
-            {:ok, item} = Exedra.Item.get(id)
-            Exedra.Item.set %{item | description: description}
-            IO.puts "A vision of " <> item.brief <> " on the ground flashes in your mind's eye."
-          else
-            IO.puts "You aren't carrying that."
-          end
-        :error ->
-          name = name_or_id
-          item_id = Enum.find player.items, fn(item_id) ->
-            {:ok, item} = Exedra.Item.get(item_id)
-            item.name == name
-          end
-          if item_id == nil do
-            IO.puts "You are not carrying that."
-          else
-            {:ok, item} = Exedra.Item.get(item_id)
-            Exedra.Item.set %{item | description: description}
-            IO.puts "A vision of " <> item.brief <> " on the ground flashes in your mind's eye."
-          end
-      end
+      IO.puts describe_item_no_item_msg()
+    end
+  end
+
+  @spec describe_item_by_name(Exedra.User.Data, String.t, String.t) :: :ok
+  def describe_item_by_name(player, description, name) do
+    item_id = Enum.find player.items, fn(item_id) ->
+      {:ok, item} = Exedra.Item.get(item_id)
+      item.name == name
+    end
+    if item_id == nil do
+      IO.puts describe_item_no_item_msg()
+    else
+      {:ok, item} = Exedra.Item.get(item_id)
+      Exedra.Item.set %{item | description: description}
+      IO.puts describe_item_describe_msg(item.brief)
     end
   end
 
@@ -359,30 +372,32 @@ help                                ?
 
   Must be given a nonempty args list - get_item called before this should return if len(args)<1
   """
-  @spec get_currency(String.t, nonempty_list(String.t)) :: :ok
-  def get_currency(username, args) do
+  @spec get_currency(Exedra.User.Data, nonempty_list(String.t)) :: :ok
+  def get_currency(player, args) do
+    # TODO add room arg, since everything calling this has it? Or wait until Mnesia is added?
     # TODO: combine with get_item() to only call Integer.parse, User.get once.
     [num_or_noun|noun_rest] = args
     case Integer.parse(num_or_noun) do
       {num, _} ->
-        if length(noun_rest) < 1 do
-          IO.puts not_here_text()
-        else
-          noun = List.first(noun_rest)
-          get_currency_noun_num(username, noun, num)
-        end
+        get_currency_num(player, num, noun_rest)
       :error ->
         noun = num_or_noun
-        get_currency_noun_num(username, noun, :all)
+        get_currency_noun_num(player, noun, :all)
     end
+  end
+
+  @spec get_currency_num(Exedra.User.Data, integer, list(String.t)) :: :ok
+  def get_currency_num(_, _, noun_rest) when length(noun_rest) < 1, do: IO.puts not_here_text()
+  def get_currency_num(player, num, noun_rest) do
+    noun = List.first(noun_rest)
+    get_currency_noun_num(player, noun, num)
   end
 
   @doc """
   Checks if the given noun is an alias for currency, and gets the requested amount, which may be :all
   """
-  @spec get_currency_noun_num(String.t, String.t, pos_integer|:all) :: :ok
-  def get_currency_noun_num(username, noun, num) do
-    {:ok, player} = Exedra.User.get(username)
+  @spec get_currency_noun_num(Exedra.User.Data, String.t, pos_integer|:all) :: :ok
+  def get_currency_noun_num(player, noun, num) do
     {:ok, room} = Exedra.Room.get(player.room_id)
     if !MapSet.member?(currency_nouns(), noun) || room.currency == 0 do
       IO.puts not_here_text()
@@ -408,57 +423,71 @@ help                                ?
   end
 
   # TODO use guards to reduce indentation
+  @spec get_item(String.t, list(String.t)) :: :ok
+  def get_item(_, args) when length(args) < 1, do: IO.puts "What do you want to get?"
   def get_item(username, args) do
-    if length(args) < 1 do
-      IO.puts "What do you want to get?"
+    name_or_id = List.first(args)
+    {:ok, player} = Exedra.User.get(username)
+    {:ok, room} = Exedra.Room.get(player.room_id)
+    case Integer.parse(name_or_id) do
+      {id, _} ->
+        get_item_by_id(player, room, id, args)
+      :error ->
+        name = name_or_id
+        get_item_by_name(player, room, name, args)
+    end
+  end
+
+  def get_item_msg(brief), do: "You pick up " <> brief <> "."
+  def get_npc_fail_msg(brief), do: brief <> " stares at you awkwardly." # TODO capitalise NPC name?
+
+  @spec get_item_by_id(Exedra.User.Data, Exedra.Room.Data, integer, list(String.t)) :: :ok
+  def get_item_by_id(player, room, id, args) do
+    cond do
+      MapSet.member?(room.items, id) ->
+        Exedra.Item.pickup(id, room, player)
+        {:ok, item} = Exedra.Item.get(id)
+        IO.puts get_item_msg(item.brief)
+      MapSet.member?(room.npcs, id) ->
+        {:ok, npc} = Exedra.NPC.get(id)
+        # TODO: allow picking up NPCs with permissions
+        # Exedra.NPC.pickup(id, room, player)
+        # IO.puts "You pick up " <> item.brief <> "."
+        IO.puts get_npc_fail_msg(npc.brief)
+      true ->
+        get_currency(player, args)
+    end
+  end
+
+  @spec get_item_by_name(Exedra.User.Data, Exedra.Room.Data, String.t, list(String.t)) :: :ok
+  def get_item_by_name(player, room, name, args) do
+    item_id = Enum.find room.items, fn(item_id) ->
+      {:ok, item} = Exedra.Item.get(item_id)
+      item.name == name
+    end
+    if item_id != nil do
+      Exedra.Item.pickup(item_id, room, player)
+      {:ok, item} = Exedra.Item.get(item_id)
+      IO.puts get_item_msg(item.brief)
     else
-      name_or_id = List.first(args)
+      get_npc_by_name(player, room, name, args)
+    end
+  end
 
-      {:ok, player} = Exedra.User.get(username)
-      {:ok, room} = Exedra.Room.get(player.room_id)
-
-      case Integer.parse(name_or_id) do
-        {id, _} ->
-          cond do
-            MapSet.member?(room.items, id) ->
-              Exedra.Item.pickup(id, room, player)
-              {:ok, item} = Exedra.Item.get(id)
-              IO.puts "You pick up " <> item.brief <> "."
-            MapSet.member?(room.npcs, id) ->
-              {:ok, npc} = Exedra.NPC.get(id)
-              # TODO: allow picking up NPCs with permissions
-              # Exedra.NPC.pickup(id, room, player)
-              # IO.puts "You pick up " <> item.brief <> "."
-              IO.puts npc.brief <>  " stares at you awkwardly."
-            true ->
-              get_currency(username, args)
-          end
-        :error ->
-          name = name_or_id
-          item_id = Enum.find room.items, fn(item_id) ->
-            {:ok, item} = Exedra.Item.get(item_id)
-            item.name == name
-          end
-          if item_id == nil do
-            npc_id = Enum.find room.npcs, fn(npc_id) ->
-              {:ok, npc} = Exedra.NPC.get(npc_id)
-              npc.name == name
-            end
-            if npc_id == nil do
-              get_currency(username, args)
-            else
-              {:ok, npc} = Exedra.NPC.get(npc_id)
-              # TODO: fix duplication with ID get above
-              # TODO: allow picking up NPCs with permissions
-              # Exedra.NPC.pickup(npc_id, room, player)
-              IO.puts npc.brief <>  " eyes you suspiciously."
-            end
-          else
-            Exedra.Item.pickup(item_id, room, player)
-            {:ok, item} = Exedra.Item.get(item_id)
-            IO.puts "You pick up " <> item.brief <> "."
-          end
-      end
+  @spec get_npc_by_name(Exedra.User.Data, Exedra.Room.Data, String.t, list(String.t)) :: :ok
+  def get_npc_by_name(player, room, name, args) do
+    npc_id = Enum.find room.npcs, fn(npc_id) ->
+      {:ok, npc} = Exedra.NPC.get(npc_id)
+      npc.name == name
+    end
+    if npc_id != nil do
+      {:ok, npc} = Exedra.NPC.get(npc_id)
+      # TODO: fix duplication with get_item_by_id
+      # TODO: allow picking up NPCs with permissions
+      # Exedra.NPC.pickup(npc_id, room, player)
+      IO.puts get_npc_fail_msg(npc.brief)
+    else
+      get_currency(player, args)
     end
   end
 
@@ -520,7 +549,7 @@ help                                ?
   # TODO: prevent dropping items which haven't had description or room_description set
   def drop_item(username, args) do
     if length(args) < 1 do
-      IO.puts "What do you want to get?"
+      IO.puts "What do you want to drop?"
     else
       name_or_id = List.first(args)
       {:ok, player} = Exedra.User.get(username)
