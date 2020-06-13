@@ -83,7 +83,7 @@ defmodule Exedra.Room do
     s = if brief do
       s
     else
-      s <> ANSI.colors[:grey] <> room.description <> ANSI.colors[:reset] <> "\n"
+      s <> ANSI.colors[:cyan] <> room.description <> ANSI.colors[:reset] <> "\n"
     end
 
     items = room.items
@@ -94,7 +94,7 @@ defmodule Exedra.Room do
     |> Enum.join(", ")
 
     s = if String.length(items) > 0 do
-      s <> ANSI.colors[:darkgrey] <> items <> "." <> ANSI.colors[:reset] <> "\n"
+      s <> ANSI.colors[:cyan] <> items <> "." <> ANSI.colors[:reset] <> "\n"
     else
       s
     end
@@ -139,11 +139,11 @@ defmodule Exedra.Room do
 
     s = s <> case room.currency do
                0 ->
-                 s
+                 ""
                1 ->
-                 s <> Exedra.Commands.currency_color() <> "A " <> Exedra.Commands.currency_text_singular() <> " is here." <> ANSI.colors[:reset] <> "\n"
+                 Exedra.Commands.currency_color() <> "A " <> Exedra.Commands.currency_text_singular() <> " is here." <> ANSI.colors[:reset] <> "\n"
                _ ->
-                 s <> Exedra.Commands.currency_color() <> Integer.to_string(room.currency) <> " " <> Exedra.Commands.currency_text_plural() <> " are here." <> ANSI.colors[:reset] <> "\n"
+                 Exedra.Commands.currency_color() <> Integer.to_string(room.currency) <> " " <> Exedra.Commands.currency_text_plural() <> " are here." <> ANSI.colors[:reset] <> "\n"
              end
 
     s = s <> ANSI.colors[:blue] <> if String.length(exits) == 0 do
