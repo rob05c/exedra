@@ -6,6 +6,7 @@ defmodule Exedra do
   alias Exedra.NPC, as: NPC
   alias Exedra.SSHManager, as: SSHManager
   alias Exedra.SessionManager, as: SessionManager
+  alias Exedra.WorldManager, as: WorldManager
 
   # @spec start(any, any) :: Supervisor.on_start
   @spec start(any, any) :: {:error, any} | {:ok, pid} | {:ok, pid, any}
@@ -14,7 +15,8 @@ defmodule Exedra do
 
     children = [
       worker(SSHManager, []),
-      worker(SessionManager, [SessionManager])
+      worker(SessionManager, [SessionManager]),
+      worker(WorldManager, [WorldManager])
     ]
 
     :ok = User.load()
