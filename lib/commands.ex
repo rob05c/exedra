@@ -52,6 +52,9 @@ defmodule Exedra.Commands do
   def execute(["ii"       | _], username), do: item_info(username)
   def execute(["iteminfo" | _], username), do: item_info(username)
 
+  def execute(["ih"       | _], username), do: item_here(username)
+  def execute(["itemhere" | _], username), do: item_here(username)
+
   def execute(["say" | args], username), do: say(username, args)
   def execute(["'"   | args], username), do: say(username, args)
 
@@ -81,6 +84,7 @@ get              <id>               g
 drop             <id>               d
 items                               i
 iteminfo                            ii
+itemhere                            ih
 say              <text>             '
 tell             <player> <text>
 
@@ -139,6 +143,10 @@ help                                ?
 
   def item_info(player_name) do
     IO.puts WorldManager.item_info(Exedra.WorldManager, player_name)
+  end
+
+  def item_here(player_name) do
+    IO.puts WorldManager.item_here(Exedra.WorldManager, player_name)
   end
 
   def look(player_name) do

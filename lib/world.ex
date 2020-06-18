@@ -68,6 +68,10 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     GenServer.call server, {:item_info, player_name}
   end
 
+  def item_here(server, player_name) do
+    GenServer.call server, {:item_here, player_name}
+  end
+
   def say(server, player_name, args) do
     GenServer.call server, {:say, player_name, args}
   end
@@ -352,6 +356,48 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
         "You are holding: \n" <> npcs <> "."
       true ->
         "You are holding nothing."
+    end
+
+    msg = cond do
+      player.currency == 1 ->
+        msg <> "\n" <> currency_color() <> Integer.to_string(player.currency) <> " " <> currency_text_singular() <> Exedra.ANSI.colors[:reset]
+      player.currency > 1 ->
+        msg <> "\n" <> currency_color() <> Integer.to_string(player.currency) <> " " <> currency_text_plural() <> Exedra.ANSI.colors[:reset]
+      true ->
+        msg
+    end
+
+    {:reply, msg, state}
+  end
+
+  def handle_call({:item_here, player_name}, _from, state) do
+    {:ok, player} = Exedra.User.get(player_name)
+    # TODO: add "and" before final item.
+    {:ok, room} = Exedra.Room.get(player.room_id)
+    # TODO deduplicate with info_here
+    items = room.items
+    |> Enum.map(fn(item_id) ->
+      {:ok, item} = Exedra.Item.get(item_id)
+      "\t" <> Integer.to_string(item.id) <> "\t" <> item.brief
+    end)
+    |> Enum.join("\n")
+
+    npcs = player.npcs
+    |> Enum.map(fn(npc_id) ->
+      {:ok, npc} = Exedra.NPC.get(npc_id)
+      npc.id <> "\t" <> npc.brief
+    end)
+    |> Enum.join("\n")
+
+    msg = cond do
+      String.length(items) > 0 && String.length(npcs) > 0 ->
+        "You see: \n" <> items <> "\n" <> npcs <> "."
+      String.length(items) > 0 ->
+        "You see: \n" <> items
+      String.length(npcs) > 0 ->
+        "You see: \n" <> npcs
+      true ->
+        "You see nothing."
     end
 
     msg = cond do
