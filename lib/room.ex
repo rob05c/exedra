@@ -2,6 +2,7 @@ defmodule Exedra.Room do
   require Logger
 
   alias Exedra.ANSI, as: ANSI
+  alias Exedra.CommandGroup.General, as: CommandGroupGeneral
 
   @data_file "data/rooms"
 
@@ -141,9 +142,9 @@ defmodule Exedra.Room do
                0 ->
                  ""
                1 ->
-                 Exedra.Commands.currency_color() <> "A " <> Exedra.Commands.currency_text_singular() <> " is here." <> ANSI.colors[:reset] <> "\n"
+                 CommandGroupGeneral.currency_color() <> "A " <> CommandGroupGeneral.currency_text_singular() <> " is here." <> ANSI.colors[:reset] <> "\n"
                _ ->
-                 Exedra.Commands.currency_color() <> Integer.to_string(room.currency) <> " " <> Exedra.Commands.currency_text_plural() <> " are here." <> ANSI.colors[:reset] <> "\n"
+                 CommandGroupGeneral.currency_color() <> Integer.to_string(room.currency) <> " " <> CommandGroupGeneral.currency_text_plural() <> " are here." <> ANSI.colors[:reset] <> "\n"
              end
 
     s = s <> ANSI.colors[:blue] <> if String.length(exits) == 0 do

@@ -14,11 +14,28 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   use GenServer
   require Logger
 
-  # defmodule Data do
-  #   @enforce_keys [:user, :pid]
-  #   defstruct user: "",
-  #             pid:  0
-  # end
+  # @spec user_exec(list(String.t), String.t) :: String.t
+  def user_exec(input_words, player_name) do
+    {:ok, player} = Exedra.User.get(player_name)
+    output = Enum.reduce_while(player.command_groups, :unhandled, fn command_group, _ ->
+      case command_group.exec(input_words, player_name) do
+        :unhandled ->
+          {:cont, :unhandled}
+        x -> # TODO validate string? when String.valid?(x)
+          {:halt, x}
+      end
+    end)
+    case output do
+      :unhandled ->
+        unknown_msg()
+      x ->
+        x
+    end
+  end
+
+  def unknown_msg() do
+    "I don't understand."
+  end
 
   def pickup_item_by_id(server, user_name, item_id, args) do
     GenServer.call server, {:pickup_item_by_id, user_name, item_id, args}
@@ -565,7 +582,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     case Integer.parse(num_or_noun) do
       {num, _} ->
         if length(noun_rest) < 1 do
-          IO.puts not_here_text()
+          not_here_text()
         else
           noun = List.first(noun_rest)
           drop_currency_num_noun(username, num, noun)
@@ -589,15 +606,15 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
         Exedra.Room.set %{room | currency: room.currency + num}
         Exedra.User.set %{player | currency: player.currency - num}
         if num == 1 do
-          IO.puts "You drop a " <> currency_text_singular() <> "."
+          "You drop a " <> currency_text_singular() <> "."
         else
-          IO.puts "You drop " <> Integer.to_string(num) <> " " <> currency_text_plural() <> "."
+          "You drop " <> Integer.to_string(num) <> " " <> currency_text_plural() <> "."
         end
       else
-        IO.puts not_enough_currency_text()
+        not_enough_currency_text()
       end
     else
-      IO.puts not_here_text()
+      not_here_text()
     end
   end
 
@@ -626,7 +643,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
         {:ok, npc} = Exedra.NPC.get(id)
         # TODO: allow picking up NPCs with permissions
         # Exedra.NPC.pickup(id, room, player)
-        # IO.puts "You pick up " <> item.brief <> "."
+        #   "You pick up " <> item.brief <> "."
         get_npc_fail_msg(npc.brief)
       true ->
         get_currency(player, args)

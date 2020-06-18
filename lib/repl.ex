@@ -25,7 +25,8 @@ defmodule Exedra.REPL do
         |> String.Chars.to_string
         |> String.trim_trailing
         |> String.split(" ")
-        |> Exedra.Commands.execute(username)
+        |> Exedra.WorldManager.user_exec(username)
+        |> IO.puts
         loop(username)
       {:die, reason} ->
         # TODO log
