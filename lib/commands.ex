@@ -49,6 +49,9 @@ defmodule Exedra.Commands do
   def execute(["items" | _], username), do: items(username)
   def execute(["i"     | _], username), do: items(username)
 
+  def execute(["ii"       | _], username), do: item_info(username)
+  def execute(["iteminfo" | _], username), do: item_info(username)
+
   def execute(["say" | args], username), do: say(username, args)
   def execute(["'"   | args], username), do: say(username, args)
 
@@ -66,6 +69,7 @@ defmodule Exedra.Commands do
 north                               n
 east                                e
 south                               s
+west                                w
 northwest                           nw
 northeast                           ne
 southwest                           sw
@@ -76,6 +80,7 @@ quicklook                           ql
 get              <id>               g
 drop             <id>               d
 items                               i
+iteminfo                            ii
 say              <text>             '
 tell             <player> <text>
 
@@ -130,6 +135,10 @@ help                                ?
 
   def items(player_name) do
     IO.puts WorldManager.items(Exedra.WorldManager, player_name)
+  end
+
+  def item_info(player_name) do
+    IO.puts WorldManager.item_info(Exedra.WorldManager, player_name)
   end
 
   def look(player_name) do
