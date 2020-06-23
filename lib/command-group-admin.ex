@@ -17,6 +17,9 @@ defmodule Exedra.CommandGroup.Admin do
   def exec(["cc"               | args], player_name), do: create_currency(   player_name, args)
   def exec(["createnpc"        | args], player_name), do: create_npc(        player_name, args)
   def exec(["cn"               | args], player_name), do: create_npc(        player_name, args)
+  def exec(["inspectnpc"       | args], player_name), do: inspect_npc(       player_name, args)
+  def exec(["inpc"             | args], player_name), do: inspect_npc(       player_name, args)
+  def exec(["addnpcaction"     | args], player_name), do: add_npc_action(    player_name, args)
 
   def exec(_, _), do: :unhandled
 
@@ -30,6 +33,22 @@ defmodule Exedra.CommandGroup.Admin do
   def create_npc(_, args) when length(args) < 2, do: create_no_name_desc_msg()
   def create_npc(player_name, args) when length(args) >= 2 do
     WorldManager.create_npc(Exedra.WorldManager, player_name, args)
+  end
+
+  def inspect_npc_no_name_desc_msg(), do: "Who do you want to inspect?"
+
+  def inspect_npc(_, args) when length(args) < 1, do: inspect_npc_no_name_desc_msg()
+  def inspect_npc(player_name, args) when length(args) >= 1 do
+    WorldManager.inspect_npc(Exedra.WorldManager, player_name, args)
+  end
+
+  def add_npc_action_no_npc_msg(), do: "Who do you want to add an action to?"
+  def add_npc_action_no_action_msg(), do: "What action do you want to add?"
+
+  def add_npc_action(_, args) when length(args) < 1, do: add_npc_action_no_npc_msg()
+  def add_npc_action(_, args) when length(args) < 2, do: add_npc_action_no_action_msg()
+  def add_npc_action(player_name, args) when length(args) >= 2 do
+    WorldManager.add_npc_action Exedra.WorldManager, player_name, args
   end
 
   @spec create_item(String.t, list(String.t)) :: :ok

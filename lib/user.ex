@@ -1,4 +1,5 @@
 defmodule Exedra.User do
+  require Logger
 
   @data_file "data/users"
 
@@ -45,6 +46,7 @@ defmodule Exedra.User do
           room_id:        default_room,
           command_groups: [
             Exedra.CommandGroup.General,
+            Exedra.CommandGroup.Emote,
             Exedra.CommandGroup.Admin
           ]
         }
@@ -74,5 +76,41 @@ defmodule Exedra.User do
 
     # debug - writing all users to disk every time someone moves doesn't scale.
     :ets.tab2file(:users, String.to_charlist(@data_file), sync: true)
+  end
+
+  #TODO deduplicate with Item.find_in
+
+  @doc """
+  Finds the player name in the given set of names.
+  Returns the player, or nil.
+  """
+  @spec find_in(String.t, MapSet.t) :: Exedra.User.Data | nil
+  def find_in(name, names) do
+    # TODO fuzzy match, or remove this
+    name = Enum.find names, fn(names_name) ->
+      {:ok, player} = Exedra.User.get(names_name) # TODO avoid multiple gets
+      player.name == name # TODO fuzzy match?
+    end
+      if MapSet.member?(names, name) do
+        {:ok, player} = Exedra.User.get(name)
+        player
+      else
+        nil
+      end
+  end
+
+  @spec message(Exedra.User.Data, String.t) ::  nil
+  def message(player, msg) do
+    # Logger.info "message_players"
+    # Logger.info inspect(room.players)
+    case Exedra.SessionManager.get(Exedra.SessionManager, player.name) do
+      {:ok, msg_pid} ->
+          send msg_pid, {:message, msg} # TODO catch? rescue?
+      :error ->
+        Logger.error "User.message for player that wasn't logged in!"
+        # TODO lock. There's a race here, like every other data mutation
+        # Exedra.Room.set(%{room | players: MapSet.delete(room.players, room_player_name)})
+        nil
+    end
   end
 end

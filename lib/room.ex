@@ -3,19 +3,21 @@ defmodule Exedra.Room do
 
   alias Exedra.ANSI, as: ANSI
   alias Exedra.CommandGroup.General, as: CommandGroupGeneral
+  alias Exedra.Container, as: Container
 
   @data_file "data/rooms"
 
   defmodule Data do
     @enforce_keys [:id, :title, :description]
     defstruct id:          0,
-              title:       "",
-              description: "",
-              exits:       %{},
-              items:       MapSet.new,
-              players:     MapSet.new,
-              npcs:        MapSet.new,
-              currency:    0
+      title:       "",
+      description: "",
+      exits:       %{},
+      # container:   Container.t,
+      items:       MapSet.new, # set<item_id>
+      players:     MapSet.new, # set<player_name>
+      npcs:        MapSet.new, # set<npc_id>
+      currency:    0
   end
 
   @room_zero %{
@@ -156,8 +158,9 @@ defmodule Exedra.Room do
   end
 
   def message_players(room, player_name, self_msg, others_msg) do
-    Logger.info "message_players"
-    Logger.info inspect(room.players)
+    # TODO deduplicate with message_players_except
+    # Logger.info "message_players"
+    # Logger.info inspect(room.players)
     Enum.map room.players, fn(room_player_name) ->
       case Exedra.SessionManager.get(Exedra.SessionManager, room_player_name) do
         {:ok, msg_pid} ->
@@ -171,7 +174,30 @@ defmodule Exedra.Room do
             send msg_pid, {:message, others_msg} # TODO catch? rescue?
           end
         :error ->
-          Logger.error "player " <> room_player_name <> " was in room but not logged in."
+          # Logger.error "player " <> room_player_name <> " was in room but not logged in."
+          # TODO lock. There's a race here, like every other data mutation
+          Exedra.Room.set(%{room | players: MapSet.delete(room.players, room_player_name)})
+          nil
+      end
+    end
+  end
+
+  @doc """
+  Sends the message to all players in the room, except the exceptions.
+  This is generally used for things like targetted emotes, which will send custom messages to the targeter and targetee.
+  """
+  @spec message_players_except(Exedra.Room.Data, String.t, [String.t]) :: nil
+  def message_players_except(room, msg, player_name_exceptions) do
+    Enum.map room.players, fn(room_player_name) ->
+      case Exedra.SessionManager.get(Exedra.SessionManager, room_player_name) do
+        {:ok, msg_pid} ->
+          if Enum.member? player_name_exceptions, room_player_name do
+            nil
+          else
+            send msg_pid, {:message, msg} # TODO catch? rescue?
+          end
+        :error ->
+          # Logger.error "player " <> room_player_name <> " was in room but not logged in."
           # TODO lock. There's a race here, like every other data mutation
           Exedra.Room.set(%{room | players: MapSet.delete(room.players, room_player_name)})
           nil
@@ -262,6 +288,26 @@ defmodule Exedra.Room do
         :sw
         _ ->
         :invalid
+    end
+  end
+
+  @doc """
+  find_npc_or_player_name_or_id finds the NPC or Player with the given name or ID.
+  Returns {:npc, id}, {:player, id}, or :not_found.
+  """
+  @spec find_npc_or_player_name_or_id(Exedra.Room.Data, integer) :: {:npc, Exedra.NPC.Data} | {:player, Exedra.User.Data} | :not_found
+  def find_npc_or_player_name_or_id(room, name_or_id) do
+    Logger.info "Room.fnopnoi '" <> name_or_id <> "'"
+    player_or_nil = Exedra.User.find_in(name_or_id, room.players)
+    if player_or_nil != nil do
+      {:player, player_or_nil}
+    else
+      npc_or_nil = Exedra.NPC.find_in name_or_id, room.npcs
+      if npc_or_nil != nil do
+        {:npc, npc_or_nil}
+      else
+        :not_found
+      end
     end
   end
 end

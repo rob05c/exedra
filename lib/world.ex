@@ -49,6 +49,10 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     GenServer.call server, {:drop_item, player_name, args}
   end
 
+  def give(server, player_name, args) do
+    GenServer.call server, {:give, player_name, args}
+  end
+
   def move(server, player_name, direction) do
     GenServer.call server, {:move, player_name, direction}
   end
@@ -63,6 +67,14 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
 
   def create_npc(server, player_name, args) do
     GenServer.call server, {:create_npc, player_name, args}
+  end
+
+  def inspect_npc(server, player_name, args) do
+    GenServer.call server, {:inspect_npc, player_name, args}
+  end
+
+  def add_npc_action(server, player_name, args) do
+    GenServer.call server, {:add_npc_action, player_name, args}
   end
 
   def create_room(server, player_name, args) do
@@ -85,8 +97,8 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     GenServer.call server, {:item_info, player_name}
   end
 
-  def item_here(server, player_name) do
-    GenServer.call server, {:item_here, player_name}
+  def info_here(server, player_name) do
+    GenServer.call server, {:info_here, player_name}
   end
 
   def say(server, player_name, args) do
@@ -111,6 +123,14 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
 
   def describe_item_by_name(server, player_name, description, name) do
     GenServer.call server, {:describe_item_by_name, player_name, description, name}
+  end
+
+  def npc_wander(server, npc_id) do
+    GenServer.call server, {:npc_wander, npc_id}
+  end
+
+  def emote(server, player_name, emote, args) do
+    GenServer.call server, {:emote, player_name, emote, args}
   end
 
   # @spec set(GenServer.server, String.t, pid) :: :ok
@@ -242,6 +262,11 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     {:reply, player_msg, state}
   end
 
+  def handle_call({:give, player_name, args}, _from, state) do
+    msg = Exedra.Item.do_give player_name, args
+    {:reply, msg, state}
+  end
+
   def handle_call({:create_currency, player_name, args}, _from, state) do
     num_str = List.first(args)
     player_msg =
@@ -274,6 +299,12 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     {:reply, player_msg, state}
   end
 
+  def handle_call({:inspect_npc, player_name, args}, _from, state) do
+    [npc_name_or_id | _] = args
+    msg = Exedra.NPC.do_inspect_npc player_name, npc_name_or_id
+    {:reply, msg, state}
+  end
+
   def handle_call({:create_room, player_name, args}, _from, state) do
     player_msg = if length(args) < 2 do
       "You must specify a direction and room name."
@@ -291,6 +322,11 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
       end
     end
     {:reply, player_msg, state}
+  end
+
+  def handle_call({:add_npc_action, player_name, args}, _from, state) do
+    msg = Exedra.NPC.do_add_action player_name, args
+    {:reply, msg, state}
   end
 
   def handle_call({:quick_look, player_name}, _from, state) do
@@ -387,7 +423,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     {:reply, msg, state}
   end
 
-  def handle_call({:item_here, player_name}, _from, state) do
+  def handle_call({:info_here, player_name}, _from, state) do
     {:ok, player} = Exedra.User.get(player_name)
     # TODO: add "and" before final item.
     {:ok, room} = Exedra.Room.get(player.room_id)
@@ -418,10 +454,10 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     end
 
     msg = cond do
-      player.currency == 1 ->
-        msg <> "\n" <> currency_color() <> Integer.to_string(player.currency) <> " " <> currency_text_singular() <> Exedra.ANSI.colors[:reset]
-      player.currency > 1 ->
-        msg <> "\n" <> currency_color() <> Integer.to_string(player.currency) <> " " <> currency_text_plural() <> Exedra.ANSI.colors[:reset]
+      room.currency == 1 ->
+        msg <> "\n" <> currency_color() <> Integer.to_string(room.currency) <> " " <> currency_text_singular() <> Exedra.ANSI.colors[:reset]
+      room.currency > 1 ->
+        msg <> "\n" <> currency_color() <> Integer.to_string(room.currency) <> " " <> currency_text_plural() <> Exedra.ANSI.colors[:reset]
       true ->
         msg
     end
@@ -441,6 +477,11 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     self_msg = say_color <> "You say, \"" <> ensure_sentence(said) <> "\"" <> reset_color
     Exedra.Room.message_players(room, player_name, self_msg, others_msg) # TODO add period logic
     {:reply, self_msg, state}
+  end
+
+  def handle_call({:emote, player_name, emote, args}, _from, state) do
+    msg = Exedra.CommandGroup.Emote.do_emote player_name, emote, args
+    {:reply, msg, state}
   end
 
   def handle_call({:tell, player_name, target_player_name, said_words}, _from, state) do
@@ -509,6 +550,12 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
       describe_item_describe_msg(item.brief)
     end
     {:reply, self_msg, state}
+  end
+
+  def handle_call({:npc_wander, npc_id}, _from, state) do
+    # TODO make generic? Change to take a callback?
+    Exedra.NPCActor.Wander.wander npc_id
+    {:reply, nil, state}
   end
 
   def describe_item_no_item_msg(),   do: "You are not carrying that."
@@ -644,6 +691,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
         # TODO: allow picking up NPCs with permissions
         # Exedra.NPC.pickup(id, room, player)
         #   "You pick up " <> item.brief <> "."
+        # With separate 'get' command for admin vs general?
         get_npc_fail_msg(npc.brief)
       true ->
         get_currency(player, args)

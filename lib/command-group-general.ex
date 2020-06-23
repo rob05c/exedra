@@ -29,12 +29,13 @@ defmodule Exedra.CommandGroup.General do
   def exec(["g"      | args], username), do: get_item(username, args)
   def exec(["drop"   | args], username), do: drop_item(username, args)
   def exec(["d"      | args], username), do: drop_item(username, args)
+  def exec(["give"   | args], username), do: give(username, args)
   def exec(["items"     | _], username), do: items(username)
   def exec(["i"         | _], username), do: items(username)
   def exec(["ii"        | _], username), do: item_info(username)
   def exec(["iteminfo"  | _], username), do: item_info(username)
-  def exec(["ih"        | _], username), do: item_here(username)
-  def exec(["itemhere"  | _], username), do: item_here(username)
+  def exec(["ih"        | _], username), do: info_here(username)
+  def exec(["infohere"  | _], username), do: info_here(username)
   def exec(["say"    | args], username), do: say(username, args)
   def exec(["'"      | args], username), do: say(username, args)
   def exec(["tell"   | args], username), do: tell(username, args)
@@ -128,8 +129,8 @@ help                                ?
     WorldManager.item_info(Exedra.WorldManager, player_name)
   end
 
-  def item_here(player_name) do
-    WorldManager.item_here(Exedra.WorldManager, player_name)
+  def info_here(player_name) do
+    WorldManager.info_here(Exedra.WorldManager, player_name)
   end
 
   def look(player_name) do
@@ -170,6 +171,11 @@ help                                ?
     # TODO: abstract duplication with get_item
     # TODO: prevent dropping items which haven't had description or room_description set
     Exedra.WorldManager.drop_item(Exedra.WorldManager, player_name, args)
+  end
+
+  def give(player_name, args) do
+    # TODO: prevent giving items which haven't had description or room_description set
+    Exedra.WorldManager.give(Exedra.WorldManager, player_name, args)
   end
 
   def move(player_name, direction) do
