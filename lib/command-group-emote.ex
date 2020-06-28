@@ -77,8 +77,14 @@ defmodule Exedra.CommandGroup.Emote do
     others_msg = emote.target_third player.name, npc.brief
     self_msg = emote.target_first player.name, npc.brief
     Exedra.Room.message_players_except(room, others_msg, [player.name])
-    #TODO fire off npc event here
-    self_msg
+
+    # we need to send the message to the player _before_ any event response
+    # TODO make this less hacky?
+    Exedra.User.message player, self_msg
+    Enum.each npc.events, fn(event) ->
+      event.on_emote(npc.id, player.name, emote.name())
+    end
+    ""
   end
 
   @spec emote_item(module, Exedra.User.Data, Exedra.Room.Data, Exedra.Item.Data) :: String.t

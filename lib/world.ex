@@ -233,6 +233,11 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     {:reply, msg, state}
   end
 
+  def handle_call({:add_npc_event, player_name, args}, _from, state) do
+    msg = Exedra.NPC.do_add_event player_name, args
+    {:reply, msg, state}
+  end
+
   def handle_call({:quick_look, player_name}, _from, state) do
     {:ok, user} = Exedra.User.get(player_name)
     {:ok, room} = Exedra.Room.get(user.room_id)
@@ -383,11 +388,6 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     {:reply, self_msg, state}
   end
 
-  def handle_call({:emote, player_name, emote, args}, _from, state) do
-    msg = Exedra.CommandGroup.Emote.do_emote player_name, emote, args
-    {:reply, msg, state}
-  end
-
   def handle_call({:tell, player_name, target_player_name, said_words}, _from, state) do
     self_msg =
       case Exedra.User.get(target_player_name) do
@@ -460,6 +460,11 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     # TODO make generic? Change to take a callback?
     Exedra.NPCActor.Wander.wander npc_id
     {:reply, nil, state}
+  end
+
+  def handle_call({:emote, player_name, emote, args}, _from, state) do
+    msg = Exedra.CommandGroup.Emote.do_emote player_name, emote, args
+    {:reply, msg, state}
   end
 
   def describe_item_no_item_msg(),   do: "You are not carrying that."

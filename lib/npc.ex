@@ -1,6 +1,6 @@
 defmodule Exedra.NPC do
   require Logger
-  
+
   @data_file "data/npcs"
 
   defmodule Data do
@@ -26,6 +26,8 @@ defmodule Exedra.NPC do
       items:             MapSet.new, # set<item_id>
       actors:            [],  # [NPCActor]
       actor_data:        %{}, # map<actor.name(), data>
+      events:            [],  # [Exedra.NPC.Eventor]
+      event_data:        %{}, # map<hook.name(), data>
       room_id:           -1
   end
 
@@ -276,8 +278,50 @@ Room ID: #{npc.room_id}
   @doc """
   Adds the given action to the npc.
   """
-  @spec add_action(String.t, module) :: nil
+  @spec add_action(Exedra.NPC.Data, module) :: nil
   def add_action(npc, action) do
     Exedra.NPC.set(%{npc | actors: npc.actors ++ [action]})
+  end
+
+  @doc """
+  Handles an addnpcevent call from the player.
+  Returns the text to show the player.
+  """
+  @spec do_add_event(String.t, [String.t]) :: String.t
+  def do_add_event(player_name, args) do
+    npc_name_or_id = Enum.at args, 0
+    event_name = Enum.at args, 1
+    {:ok, player} = Exedra.User.get player_name
+    {:ok, room} = Exedra.Room.get player.room_id
+
+    npc_or_nil = find_in npc_name_or_id, room.npcs
+    if npc_or_nil == nil do
+      "Nobody by that name is here"
+    else
+      add_event_by_name npc_or_nil, event_name
+    end
+  end
+
+  @doc """
+  Adds the given event to the npc, if the event exists.
+  Returns the text to show the player.
+  """
+  @spec add_event_by_name(String.t, String.t) :: String.t
+  def add_event_by_name(npc, event_name) do
+    cond do
+      event_name == Exedra.NPC.Eventor.RepeatedEmote.name() ->
+        add_event npc, Exedra.NPC.Eventor.RepeatedEmote
+        npc.brief <> " will now " <> event_name <> "."
+      true ->
+        "No event by that name exists"
+    end
+  end
+
+  @doc """
+  Adds the given event to the npc.
+  """
+  @spec add_event(Exedra.NPC.Data, module) :: nil
+  def add_event(npc, event) do
+    Exedra.NPC.set(%{npc | events: npc.events ++ [event]})
   end
 end

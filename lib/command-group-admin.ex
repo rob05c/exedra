@@ -20,6 +20,7 @@ defmodule Exedra.CommandGroup.Admin do
   def exec(["inspectnpc"       | args], player_name), do: inspect_npc(       player_name, args)
   def exec(["inpc"             | args], player_name), do: inspect_npc(       player_name, args)
   def exec(["addnpcaction"     | args], player_name), do: add_npc_action(    player_name, args)
+  def exec(["addnpcevent"      | args], player_name), do: add_npc_event(     player_name, args)
 
   def exec(_, _), do: :unhandled
 
@@ -49,6 +50,15 @@ defmodule Exedra.CommandGroup.Admin do
   def add_npc_action(_, args) when length(args) < 2, do: add_npc_action_no_action_msg()
   def add_npc_action(player_name, args) when length(args) >= 2 do
     GenServer.call WorldManager, {:add_npc_action, player_name, args}
+  end
+
+  def add_npc_event_no_npc_msg(), do: "Who do you want to add an event to?"
+  def add_npc_event_no_event_msg(), do: "What event do you want to add?"
+
+  def add_npc_event(_, args) when length(args) < 1, do: add_npc_event_no_npc_msg()
+  def add_npc_event(_, args) when length(args) < 2, do: add_npc_event_no_event_msg()
+  def add_npc_event(player_name, args) when length(args) >= 2 do
+    GenServer.call WorldManager, {:add_npc_event, player_name, args}
   end
 
   @spec create_item(String.t, list(String.t)) :: :ok
