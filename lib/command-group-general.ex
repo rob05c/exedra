@@ -25,20 +25,20 @@ defmodule Exedra.CommandGroup.General do
   def exec(["l"         | _], player_name), do: look(player_name)
   def exec(["quicklook" | _], player_name), do: quick_look(player_name)
   def exec(["ql"        | _], player_name), do: quick_look(player_name)
-  def exec(["get"    | args], username), do: get_item(username, args)
-  def exec(["g"      | args], username), do: get_item(username, args)
-  def exec(["drop"   | args], username), do: drop_item(username, args)
-  def exec(["d"      | args], username), do: drop_item(username, args)
-  def exec(["give"   | args], username), do: give(username, args)
-  def exec(["items"     | _], username), do: items(username)
-  def exec(["i"         | _], username), do: items(username)
-  def exec(["ii"        | _], username), do: item_info(username)
-  def exec(["iteminfo"  | _], username), do: item_info(username)
-  def exec(["ih"        | _], username), do: info_here(username)
-  def exec(["infohere"  | _], username), do: info_here(username)
-  def exec(["say"    | args], username), do: say(username, args)
-  def exec(["'"      | args], username), do: say(username, args)
-  def exec(["tell"   | args], username), do: tell(username, args)
+  def exec(["get"    | args], playername), do: get_item(playername, args)
+  def exec(["g"      | args], playername), do: get_item(playername, args)
+  def exec(["drop"   | args], playername), do: drop_item(playername, args)
+  def exec(["d"      | args], playername), do: drop_item(playername, args)
+  def exec(["give"   | args], playername), do: give(playername, args)
+  def exec(["items"     | _], playername), do: items(playername)
+  def exec(["i"         | _], playername), do: items(playername)
+  def exec(["ii"        | _], playername), do: item_info(playername)
+  def exec(["iteminfo"  | _], playername), do: item_info(playername)
+  def exec(["ih"        | _], playername), do: info_here(playername)
+  def exec(["infohere"  | _], playername), do: info_here(playername)
+  def exec(["say"    | args], playername), do: say(playername, args)
+  def exec(["'"      | args], playername), do: say(playername, args)
+  def exec(["tell"   | args], playername), do: tell(playername, args)
   def exec(["help"      | _], _), do: help()
   def exec(["h"         | _], _), do: help()
   def exec(["?"         | _], _), do: help()
@@ -145,14 +145,14 @@ help                                ?
   @spec get_item(String.t, list(String.t)) :: :ok
   def get_item(_, args) when length(args) < 1, do: "What do you want to get?"
 
-  def get_item(user_name, args) do
+  def get_item(player_name, args) do
     item_name_or_id = List.first(args)
     case Integer.parse(item_name_or_id) do
       {item_id, _} ->
-        {:ok, reply_str} = GenServer.call WorldManager, {:pickup_item_by_id, user_name, item_id, args}
+        {:ok, reply_str} = GenServer.call WorldManager, {:pickup_item_by_id, player_name, item_id, args}
         reply_str
       :error ->
-        {:ok, reply_str} = GenServer.call WorldManager, {:pickup_item_by_name, user_name, item_name_or_id, args}
+        {:ok, reply_str} = GenServer.call WorldManager, {:pickup_item_by_name, player_name, item_name_or_id, args}
         reply_str
     end
   end

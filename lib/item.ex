@@ -38,28 +38,28 @@ defmodule Exedra.Item do
     # debug - writing all objects to disk every change doesn't scale
     :ets.tab2file(:items, String.to_charlist(@data_file), sync: true)
 
-    Exedra.User.set(%{player | items: MapSet.put(player.items, new_item.id)})
+    Exedra.Player.set(%{player | items: MapSet.put(player.items, new_item.id)})
 
     new_item
   end
 
   def pickup(item_id, room, player) do
     Exedra.Room.set(%{room | items: MapSet.delete(room.items, item_id)})
-    Exedra.User.set(%{player | items: MapSet.put(player.items, item_id)})
+    Exedra.Player.set(%{player | items: MapSet.put(player.items, item_id)})
   end
 
   def drop(item_id, room, player) do
-    Exedra.User.set(%{player | items: MapSet.delete(player.items, item_id)})
+    Exedra.Player.set(%{player | items: MapSet.delete(player.items, item_id)})
     Exedra.Room.set(%{room | items: MapSet.put(room.items, item_id)})
   end
 
   def give_npc(item_id, player, npc) do
-    Exedra.User.set(%{player | items: MapSet.delete(player.items, item_id)})
+    Exedra.Player.set(%{player | items: MapSet.delete(player.items, item_id)})
     Exedra.NPC.set(%{npc | items: MapSet.put(npc.items, item_id)})
   end
 
   def give_player(item_id, player_from, player_to) do
-    Exedra.User.set(%{player_from | items: MapSet.delete(player_from.items, item_id)})
+    Exedra.Player.set(%{player_from | items: MapSet.delete(player_from.items, item_id)})
     Exedra.NPC.set(%{player_to | items: MapSet.put(player_to.items, item_id)})
   end
 
@@ -75,7 +75,7 @@ defmodule Exedra.Item do
   def set(item) do
     :ets.insert(:items, {item.id, item})
 
-    # debug - writing all users to disk every time someone moves doesn't scale.
+    # debug - writing all players to disk every time someone moves doesn't scale.
     :ets.tab2file(:items, String.to_charlist(@data_file), sync: true)
   end
 
@@ -154,7 +154,7 @@ defmodule Exedra.Item do
   """
   @spec give_to(String.t, String.t, String.t) :: String.t
   def give_to(player_name, item_name_or_id, target_name_or_id) do
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     Logger.info "Item.give_to calling find_in '" <> item_name_or_id <> "' in player.items"
     item_or_nil = find_in(item_name_or_id, player.items)
     if item_or_nil == nil do
@@ -168,7 +168,7 @@ defmodule Exedra.Item do
   give_item_to gives the item in the player's inventory to the target.
   The target may be the ID or name of an NPC or player in the same room.
   """
-  @spec give_item_to(Exedra.User.Data, Exedra.Item.Data, String.t) :: String.t
+  @spec give_item_to(Exedra.Player.Data, Exedra.Item.Data, String.t) :: String.t
   def give_item_to(player, item, target_name_or_id) do
     {:ok, room} = Exedra.Room.get(player.room_id)
     case Exedra.Room.find_npc_or_player_name_or_id(room, target_name_or_id) do
@@ -184,22 +184,22 @@ defmodule Exedra.Item do
   @doc """
   Gives the item in the player's inventory to the target player.
   """
-  @spec give_item_to_player(Exedra.User.Data, Exedra.Item.Data, Exedra.User.Data) :: String.t
+  @spec give_item_to_player(Exedra.Player.Data, Exedra.Item.Data, Exedra.Player.Data) :: String.t
   def give_item_to_player(player, item, target_player) do
-    Exedra.User.set(%{target_player | items: MapSet.put(target_player.items, item.id)})
-    Exedra.User.set(%{player | items: MapSet.delete(player.items, item.id)})
+    Exedra.Player.set(%{target_player | items: MapSet.put(target_player.items, item.id)})
+    Exedra.Player.set(%{player | items: MapSet.delete(player.items, item.id)})
     # TODO message room? Stealth handing?
-    Exedra.User.message(target_player, player.name <> " gives you " <> item.brief <> ".")
+    Exedra.Player.message(target_player, player.name <> " gives you " <> item.brief <> ".")
     "You give " <> item.brief <> " to " <> target_player.name <> "."
   end
 
   @doc """
   Gives the item in the player's inventory to the npc.
   """
-  @spec give_item_to_npc(Exedra.User.Data, Exedra.Item.Data, Exedra.NPC.Data) :: String.t
+  @spec give_item_to_npc(Exedra.Player.Data, Exedra.Item.Data, Exedra.NPC.Data) :: String.t
   def give_item_to_npc(player, item, npc) do
     Exedra.NPC.set(%{npc | items: MapSet.put(npc.items, item.id)})
-    Exedra.User.set(%{player | items: MapSet.delete(player.items, item.id)})
+    Exedra.Player.set(%{player | items: MapSet.delete(player.items, item.id)})
     "You give " <> item.brief <> " to " <> npc.brief <> "."
   end
 end

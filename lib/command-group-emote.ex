@@ -36,13 +36,13 @@ defmodule Exedra.CommandGroup.Emote do
   @spec do_emote_module(module, String.t, [String.t]) :: String.t
   def do_emote_module(emote, player_name, args) do
     # TODO better name
-    {:ok, player} = Exedra.User.get player_name
+    {:ok, player} = Exedra.Player.get player_name
     {:ok, room} = Exedra.Room.get player.room_id
     if length(args) > 0 do
       target = Enum.at(args, 0)
       msg = nil
       msg = with nil <- msg,
-                 target_player when not is_nil(target_player) <- Exedra.User.find_in(target, room.players) do
+                 target_player when not is_nil(target_player) <- Exedra.Player.find_in(target, room.players) do
               emote_player emote, player, room, target_player
       end
       msg = with nil <- msg,
@@ -62,17 +62,17 @@ defmodule Exedra.CommandGroup.Emote do
     end
   end
 
-  @spec emote_player(module, Exedra.User.Data, Exedra.Room.Data, Exedra.User.Data) :: String.t
+  @spec emote_player(module, Exedra.Player.Data, Exedra.Room.Data, Exedra.Player.Data) :: String.t
   def emote_player(emote, player, room, target_player) do
     others_msg = emote.target_third player.name, target_player.name
     target_msg = emote.target_second player.name, target_player.name
     self_msg = emote.target_first player.name, target_player.name
     Exedra.Room.message_players_except(room, others_msg, [player.name, target_player.name])
-    Exedra.User.message(target_player, target_msg)
+    Exedra.Player.message(target_player, target_msg)
     self_msg
   end
 
-  @spec emote_npc(module, Exedra.User.Data, Exedra.Room.Data, Exedra.NPC.Data) :: String.t
+  @spec emote_npc(module, Exedra.Player.Data, Exedra.Room.Data, Exedra.NPC.Data) :: String.t
   def emote_npc(emote, player, room, npc) do
     others_msg = emote.target_third player.name, npc.brief
     self_msg = emote.target_first player.name, npc.brief
@@ -80,14 +80,14 @@ defmodule Exedra.CommandGroup.Emote do
 
     # we need to send the message to the player _before_ any event response
     # TODO make this less hacky?
-    Exedra.User.message player, self_msg
+    Exedra.Player.message player, self_msg
     Enum.each npc.events, fn(event) ->
       event.on_emote(npc.id, player.name, emote.name())
     end
     ""
   end
 
-  @spec emote_item(module, Exedra.User.Data, Exedra.Room.Data, Exedra.Item.Data) :: String.t
+  @spec emote_item(module, Exedra.Player.Data, Exedra.Room.Data, Exedra.Item.Data) :: String.t
   def emote_item(emote, player, room, item) do
     others_msg = emote.target_third player.name, item.brief
     self_msg = emote.target_first player.name, item.brief
@@ -95,7 +95,7 @@ defmodule Exedra.CommandGroup.Emote do
     self_msg
   end
 
-  @spec emote_none(module, Exedra.User.Data, Exedra.Room.Data) :: String.t
+  @spec emote_none(module, Exedra.Player.Data, Exedra.Room.Data) :: String.t
   def emote_none(emote, player, room) do
     others_msg = emote.third player.name
     self_msg = emote.first player.name

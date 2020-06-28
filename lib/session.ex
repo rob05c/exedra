@@ -2,24 +2,24 @@ defmodule Exedra.SessionManager do
   use GenServer
 
   defmodule Data do
-    @enforce_keys [:user, :pid]
-    defstruct user: "",
+    @enforce_keys [:player, :pid]
+    defstruct player: "",
               pid:  0
   end
 
   @spec get(GenServer.server, String.t) :: {:ok, pid} | :error
-  def get(server, user) do
-    GenServer.call server, {:get, user}
+  def get(server, player) do
+    GenServer.call server, {:get, player}
   end
 
   @spec set(GenServer.server, String.t, pid) :: :ok
-  def set(server, user, pid) do
-    GenServer.cast server, {:set, user, pid}
+  def set(server, player, pid) do
+    GenServer.cast server, {:set, player, pid}
   end
 
   @spec delete(GenServer.server, String.t) :: :ok
-  def delete(server, user) do
-    GenServer.cast server, {:delete, user}
+  def delete(server, player) do
+    GenServer.cast server, {:delete, player}
   end
 
 
@@ -35,20 +35,20 @@ defmodule Exedra.SessionManager do
   end
 
   @spec handle_call({:get, String.t}, any, %{}) :: {:reply, {:ok, pid} | :error, %{}}
-  def handle_call({:get, user}, _from, data) do
-    reply = Map.fetch(data, user)
+  def handle_call({:get, player}, _from, data) do
+    reply = Map.fetch(data, player)
     {:reply, reply, data}
   end
 
   @spec handle_cast({:set, String.t, pid}, %{}) :: {:noreply, %{}}
-  def handle_cast({:set, user, pid}, data) do
-    data = Map.put data, user, pid
+  def handle_cast({:set, player, pid}, data) do
+    data = Map.put data, player, pid
     {:noreply, data}
   end
 
   @spec handle_cast({:delete, String.t}, %{}) :: {:noreply, %{}}
-  def handle_cast({:delete, user}, data) do
-    data = Map.delete(data, user)
+  def handle_cast({:delete, player}, data) do
+    data = Map.delete(data, player)
     {:noreply, data}
   end
 end

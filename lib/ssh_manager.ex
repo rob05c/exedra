@@ -30,32 +30,32 @@ defmodule Exedra.SSHManager do
   end
 
   @doc false
-  def handle_cast(:start, %__MODULE__{port: port, priv_dir: priv_dir, credentials: credentials} = state) do
+  def handle_cast(:start, %__MODULE__{port: port, priv_dir: priv_dir, credentials: _credentials} = state) do
     {:ok, pid} = :ssh.daemon port,
-      shell:          fn(user) -> Exedra.REPL.start(user) end,
+      shell:          fn(player) -> Exedra.REPL.start(player) end,
       system_dir:     priv_dir,
       user_dir:       priv_dir,
       # password:       String.to_charlist(""),
-      # user_passwords: credentials,
-      auth_method_kb_interactive_data: fn(ip_port, user_cl, service) ->
-        user = String.Chars.to_string(user_cl)
-        if Exedra.User.exists?(user) do
+      # player_passwords: credentials,
+      auth_method_kb_interactive_data: fn(_ip_port, player_cl, _service) ->
+        player = String.Chars.to_string(player_cl)
+        if Exedra.Player.exists?(player) do
           {String.to_charlist("EXEDRA"),
-           String.to_charlist("Enter Password for " <> user <> ":"),
+           String.to_charlist("Enter Password for " <> player <> ":"),
            String.to_charlist("Password: "),
            false}
         else
           {String.to_charlist("EXEDRA"),
-           String.to_charlist("Creating New User " <> user <> ":"),
+           String.to_charlist("Creating New Player " <> player <> ":"),
            String.to_charlist("Create a new password:"),
            false}
         end
       end,
-      pwdfun: fn(user, pass, {ip, port}, state) ->
-        user = String.Chars.to_string(user)
+      pwdfun: fn(player, pass, {_ip, _port}, _state) ->
+        player = String.Chars.to_string(player)
         pass = String.Chars.to_string(pass)
         # # TODO: block repeated IP failures
-        Exedra.User.login(user, pass)
+        Exedra.Player.login(player, pass)
        end
 
 

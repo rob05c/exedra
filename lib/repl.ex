@@ -1,45 +1,45 @@
 defmodule Exedra.REPL do
   alias Exedra.SessionManager, as: SessionManager
 
-  def start(user_charlist) do
-    username = String.Chars.to_string user_charlist
+  def start(player_charlist) do
+    playername = String.Chars.to_string player_charlist
 
     loop_pid = spawn fn ->
       Process.flag(:trap_exit, true) # TODO: determine if necessary
-      IO.puts "Hello " <> username <> "!"
-      loop(username)
+      IO.puts "Hello " <> playername <> "!"
+      loop(playername)
     end
 
     # TODO: Determine if this should be a task or genserver
-    spawn fn -> input_listen(username, loop_pid) end
+    spawn fn -> input_listen(playername, loop_pid) end
 
-    login username, loop_pid
+    login playername, loop_pid
 
     loop_pid
   end
 
-  def loop(username) do
+  def loop(playername) do
     receive do
       {:input, input} ->
         input
         |> String.Chars.to_string
         |> String.trim_trailing
         |> String.split(" ")
-        |> Exedra.WorldManager.user_exec(username)
+        |> Exedra.WorldManager.player_exec(playername)
         |> IO.puts
-        loop(username)
+        loop(playername)
       {:die, reason} ->
         # TODO log
-        IO.puts username <> " lost connection: " <> Atom.to_string(reason)
-        logout username
+        IO.puts playername <> " lost connection: " <> Atom.to_string(reason)
+        logout playername
         :ok
       {:message, message} ->
         IO.puts message
-        loop(username)
+        loop(playername)
     end
   end
 
-  def input_listen(username, loop_pid) do
+  def input_listen(playername, loop_pid) do
     prompt = "> "
     case IO.gets prompt do
       {:error, reason} ->
@@ -48,13 +48,13 @@ defmodule Exedra.REPL do
         send loop_pid, {:die, :eof}
       data ->
         send loop_pid, {:input, data}
-        input_listen(username, loop_pid)
+        input_listen(playername, loop_pid)
     end
   end
 
   def logout(player_name) do
     SessionManager.delete(SessionManager, player_name)
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     {:ok, room} = Exedra.Room.get(player.room_id)
     Exedra.Room.set(%{room | players: MapSet.delete(room.players, player_name)})
   end
@@ -62,7 +62,7 @@ defmodule Exedra.REPL do
   # TODO: logout existing logins for this player
   def login(player_name, loop_pid) do
     SessionManager.set SessionManager, player_name, loop_pid
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     {:ok, room} = Exedra.Room.get(player.room_id)
     Exedra.Room.set %{room | players: MapSet.put(room.players, player_name)}
   end

@@ -1,6 +1,6 @@
 defmodule Exedra do
   use Application
-  alias Exedra.User, as: User
+  alias Exedra.Player, as: Player
   alias Exedra.Room, as: Room
   alias Exedra.Item, as: Item
   alias Exedra.NPC, as: NPC
@@ -21,7 +21,7 @@ defmodule Exedra do
       worker(NPCActorManager, [NPCActorManager])
     ]
 
-    :ok = User.load()
+    :ok = Player.load()
     :ok = Room.load() # TODO remove room players on startup
     :ok = Item.load()
     :ok = NPC.load()

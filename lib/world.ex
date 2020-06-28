@@ -15,11 +15,11 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   require Logger
 
   @doc """
-  Executes the command from the given user, returning the response to send the user.
+  Executes the command from the given player, returning the response to send the player.
   """
-  @spec user_exec(list(String.t), String.t) :: String.t
-  def user_exec(input_words, player_name) do
-    {:ok, player} = Exedra.User.get(player_name)
+  @spec player_exec(list(String.t), String.t) :: String.t
+  def player_exec(input_words, player_name) do
+    {:ok, player} = Exedra.Player.get(player_name)
     output = Enum.reduce_while(player.command_groups, :unhandled, fn command_group, _ ->
       case command_group.exec(input_words, player_name) do
         :unhandled ->
@@ -39,13 +39,13 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   def unknown_command_msg(), do: "I don't understand."
 
   # @spec set(GenServer.server, String.t, pid) :: :ok
-  # def set(server, user, pid) do
-  #   GenServer.cast server, {:set, user, pid}
+  # def set(server, player, pid) do
+  #   GenServer.cast server, {:set, player, pid}
   # end
 
   # @spec delete(GenServer.server, String.t) :: :ok
-  # def delete(server, user) do
-  #   GenServer.cast server, {:delete, user}
+  # def delete(server, player) do
+  #   GenServer.cast server, {:delete, player}
   # end
 
   @spec init([]) :: {:ok, %{}}
@@ -63,18 +63,18 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   #   GenServer.start_link(__MODULE__, :ok, opts)
   # end
 
-  def handle_call({:pickup_item_by_id, user_name, item_id, args}, _from, state) do
+  def handle_call({:pickup_item_by_id, player_name, item_id, args}, _from, state) do
     # TODO pipeline
-    {:ok, player} = Exedra.User.get(user_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     {:ok, room} = Exedra.Room.get(player.room_id)
     reply_str = get_item_by_id(player, room, item_id, args)
     # Logger.error "get_item_by_id reply '" <> reply_str <> "'"
     {:reply, {:ok, reply_str}, state}
   end
 
-  def handle_call({:pickup_item_by_name, user_name, item_name, args}, _from, state) do
+  def handle_call({:pickup_item_by_name, player_name, item_name, args}, _from, state) do
     # TODO pipeline
-    {:ok, player} = Exedra.User.get(user_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     {:ok, room} = Exedra.Room.get(player.room_id)
     reply_str = get_item_by_name(player, room, item_name, args)
     # Logger.error "get_item_by_name reply '" <> reply_str <> "'"
@@ -83,7 +83,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
 
   def handle_call({:move, player_name, direction}, _from, state) do
     # TODO: prevent moving from rooms without descriptions, and auto-move to on creation.
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     {:ok, player_room} = Exedra.Room.get(player.room_id)
     player_msg =
       case Map.fetch(player_room.exits, direction) do
@@ -92,7 +92,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
 
           Exedra.Room.set(%{player_room | players: MapSet.delete(player_room.players, player_name)})
           Exedra.Room.set(%{to_room | players: MapSet.put(to_room.players, player_name)})
-          Exedra.User.set(%{player | room_id: to_room_id})
+          Exedra.Player.set(%{player | room_id: to_room_id})
 
           to_dir_str = Exedra.Room.dir_atom_to_string(direction)
           from_dir_str = Exedra.Room.dir_atom_to_string(Exedra.Room.reverse(direction))
@@ -119,7 +119,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
       "What do you want to drop?"
     else
       name_or_id = List.first(args)
-      {:ok, player} = Exedra.User.get(player_name)
+      {:ok, player} = Exedra.Player.get(player_name)
       case Integer.parse(name_or_id) do
         {id, _} ->
           cond do
@@ -178,8 +178,8 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
         :error ->
           create_currency_no_num_str()
       {num, _} ->
-        {:ok, player} = Exedra.User.get(player_name)
-        Exedra.User.set(%{player | currency: player.currency + num})
+        {:ok, player} = Exedra.Player.get(player_name)
+        Exedra.Player.set(%{player | currency: player.currency + num})
         create_currency_msg(num_str)
       end
     {:reply, player_msg, state}
@@ -188,7 +188,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   def handle_call({:create_item, player_name, args}, _from, state) do
     [name | description_list] = args
     brief_description = Enum.join(description_list, " ")
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     Exedra.Item.create(player, name, brief_description)
     player_msg = create_msg(brief_description)
     {:reply, player_msg, state}
@@ -197,7 +197,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   def handle_call({:create_npc, player_name, args}, _from, state) do
     [name | description_list] = args
     brief_description = Enum.join(description_list, " ")
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     Exedra.NPC.create(player, name, brief_description)
     player_msg = create_msg(brief_description)
     {:reply, player_msg, state}
@@ -219,7 +219,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
       if direction == :invalid do
         "That's not a valid direction."
       else
-        {:ok, player} = Exedra.User.get(player_name)
+        {:ok, player} = Exedra.Player.get(player_name)
         {:ok, player_room} = Exedra.Room.get(player.room_id)
         Exedra.Room.create_dir(player_room, direction, room_name, "")
         "The mist parts in the " <> Exedra.Room.dir_atom_to_string(direction) <> "."
@@ -239,21 +239,21 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   end
 
   def handle_call({:quick_look, player_name}, _from, state) do
-    {:ok, user} = Exedra.User.get(player_name)
-    {:ok, room} = Exedra.Room.get(user.room_id)
+    {:ok, player} = Exedra.Player.get(player_name)
+    {:ok, room} = Exedra.Room.get(player.room_id)
     msg = Exedra.Room.print(room, true, player_name)
     {:reply, msg, state}
   end
 
   def handle_call({:look, player_name}, _from, state) do
-    {:ok, user} = Exedra.User.get(player_name)
-    {:ok, room} = Exedra.Room.get(user.room_id)
+    {:ok, player} = Exedra.Player.get(player_name)
+    {:ok, room} = Exedra.Room.get(player.room_id)
     msg = Exedra.Room.print(room, false, player_name)
     {:reply, msg, state}
   end
 
   def handle_call({:items, player_name}, _from, state) do
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     # TODO: add "and" before final item.
     items = player.items
     |> Enum.map(fn(item_id) ->
@@ -293,7 +293,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   end
 
   def handle_call({:item_info, player_name}, _from, state) do
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     # TODO: add "and" before final item.
     items = player.items
     |> Enum.map(fn(item_id) ->
@@ -333,7 +333,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   end
 
   def handle_call({:info_here, player_name}, _from, state) do
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     # TODO: add "and" before final item.
     {:ok, room} = Exedra.Room.get(player.room_id)
     # TODO deduplicate with info_here
@@ -379,7 +379,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     reset_color = Exedra.ANSI.colors[:reset]
 
     said = Enum.join(args, " ")
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     {:ok, room} = Exedra.Room.get(player.room_id)
 
     others_msg = say_color <> String.capitalize(player_name) <> " says, \"" <> ensure_sentence(said) <> "\"" <> reset_color
@@ -390,9 +390,9 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
 
   def handle_call({:tell, player_name, target_player_name, said_words}, _from, state) do
     self_msg =
-      case Exedra.User.get(target_player_name) do
+      case Exedra.Player.get(target_player_name) do
         {:ok, _} ->
-          tell_user(player_name, target_player_name, said_words)
+          tell_player(player_name, target_player_name, said_words)
         _ ->
           tell_no_found_player_msg(target_player_name)
       end
@@ -400,7 +400,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   end
 
   def handle_call({:room_describe_item_by_id, player_name, room_description, id}, _from, state) do
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     self_msg =
     if MapSet.member?(player.items, id) do
       {:ok, item} = Exedra.Item.get(id)
@@ -413,7 +413,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   end
 
   def handle_call({:room_describe_item_by_name, player_name, room_description, name}, _from, state) do
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     item_id = Enum.find player.items, fn(item_id) ->
       {:ok, item} = Exedra.Item.get(item_id)
       item.name == name
@@ -429,7 +429,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   end
 
   def handle_call({:describe_item_by_id, player_name, description, id}, _from, state) do
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     self_msg = if MapSet.member?(player.items, id) do
       {:ok, item} = Exedra.Item.get(id)
       Exedra.Item.set %{item | description: description}
@@ -441,7 +441,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   end
 
   def handle_call({:describe_item_by_name, player_name, description, name}, _from, state) do
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     item_id = Enum.find player.items, fn(item_id) ->
       {:ok, item} = Exedra.Item.get(item_id)
       item.name == name
@@ -471,11 +471,11 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   def room_describe_item_describe_msg(brief),  do: "A vision of " <> brief <> " on the ground flashes in your mind's eye."
   def describe_item_describe_msg(brief),  do: "A vision of " <> brief <> " flashes in your mind's eye."
 
-  @spec tell_user(String.t, String.t, nonempty_list(String.t)) :: :ok
-  def tell_user(player_name, target_player_name, said_words) do
+  @spec tell_player(String.t, String.t, nonempty_list(String.t)) :: :ok
+  def tell_player(player_name, target_player_name, said_words) do
     case Exedra.SessionManager.get(Exedra.SessionManager, target_player_name) do
       {:ok, msg_pid} ->
-        tell_connected_user(player_name, target_player_name, said_words, msg_pid)
+        tell_connected_player(player_name, target_player_name, said_words, msg_pid)
       :error ->
         tell_target_not_online_msg()
     end
@@ -486,8 +486,8 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   def tell_color(), do: Exedra.ANSI.colors[:yellow] # TODO deduplicate in commands
   def reset_color(), do: Exedra.ANSI.colors[:reset] # TODO deduplicate in commands
 
-  # @spec tell_connected_user(String.t, String.t, nonempty_list(String.t), pid) :: :ok
-  def tell_connected_user(player_name, target_player_name, said_words, target_pid) do
+  # @spec tell_connected_player(String.t, String.t, nonempty_list(String.t), pid) :: :ok
+  def tell_connected_player(player_name, target_player_name, said_words, target_pid) do
     said = Enum.join(said_words, " ")
     send target_pid, {:message, tell_other_msg(player_name, said)}
     tell_self_msg(target_player_name, said)
@@ -532,8 +532,8 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   Must be given a nonempty args list - drop_item called before this should return if len(args)<1
   """
   @spec drop_currency(String.t, nonempty_list(String.t)) :: :ok
-  def drop_currency(username, args) do
-    # TODO: combine with drop_item() to only call Integer.parse, User.get once.
+  def drop_currency(playername, args) do
+    # TODO: combine with drop_item() to only call Integer.parse, Player.get once.
     [num_or_noun|noun_rest] = args
     case Integer.parse(num_or_noun) do
       {num, _} ->
@@ -541,11 +541,11 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
           not_here_text()
         else
           noun = List.first(noun_rest)
-          drop_currency_num_noun(username, num, noun)
+          drop_currency_num_noun(playername, num, noun)
         end
       :error ->
         noun = num_or_noun
-        drop_currency_num_noun(username, 1, noun)
+        drop_currency_num_noun(playername, 1, noun)
     end
   end
 
@@ -553,14 +553,14 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   Checks if the given noun is an alias for currency, and drops the requested amount.
   """
   @spec drop_currency_num_noun(String.t, pos_integer, String.t) :: :ok
-  def drop_currency_num_noun(username, num, noun) do
+  def drop_currency_num_noun(playername, num, noun) do
     if MapSet.member? currency_nouns(), noun do
-      {:ok, player} = Exedra.User.get(username)
+      {:ok, player} = Exedra.Player.get(playername)
       if player.currency >= num do
         {:ok, room} = Exedra.Room.get(player.room_id)
         # TODO atomic/lock; race condition
         Exedra.Room.set %{room | currency: room.currency + num}
-        Exedra.User.set %{player | currency: player.currency - num}
+        Exedra.Player.set %{player | currency: player.currency - num}
         if num == 1 do
           "You drop a " <> currency_text_singular() <> "."
         else
@@ -577,18 +577,18 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   def not_enough_currency_text(), do: "You don't have that much coin."
 
   # @spec handle_cast({:set, String.t, pid}, %{}) :: {:noreply, %{}}
-  # def handle_cast({:set, user, pid}, data) do
-  #   data = Map.put data, user, pid
+  # def handle_cast({:set, player, pid}, data) do
+  #   data = Map.put data, player, pid
   #   {:noreply, data}
   # end
 
   # @spec handle_cast({:delete, String.t}, %{}) :: {:noreply, %{}}
-  # def handle_cast({:delete, user}, data) do
-  #   data = Map.delete(data, user)
+  # def handle_cast({:delete, player}, data) do
+  #   data = Map.delete(data, player)
   #   {:noreply, data}
   # end
 
-  @spec get_item_by_id(Exedra.User.Data, Exedra.Room.Data, integer, list(String.t)) :: String.t
+  @spec get_item_by_id(Exedra.Player.Data, Exedra.Room.Data, integer, list(String.t)) :: String.t
   def get_item_by_id(player, room, id, args) do
     cond do
       MapSet.member?(room.items, id) ->
@@ -607,7 +607,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     end
   end
 
-  @spec get_item_by_name(Exedra.User.Data, Exedra.Room.Data, String.t, list(String.t)) :: String.t
+  @spec get_item_by_name(Exedra.Player.Data, Exedra.Room.Data, String.t, list(String.t)) :: String.t
   def get_item_by_name(player, room, name, args) do
     item_id = Enum.find room.items, fn(item_id) ->
       {:ok, item} = Exedra.Item.get(item_id)
@@ -622,10 +622,10 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     end
   end
 
-  @spec get_currency(Exedra.User.Data, nonempty_list(String.t)) :: String.t
+  @spec get_currency(Exedra.Player.Data, nonempty_list(String.t)) :: String.t
   def get_currency(player, args) do
     # TODO add room arg, since everything calling this has it? Or wait until Mnesia is added?
-    # TODO: combine with get_item() to only call Integer.parse, User.get once.
+    # TODO: combine with get_item() to only call Integer.parse, Player.get once.
     [num_or_noun|noun_rest] = args
     case Integer.parse(num_or_noun) do
       {num, _} ->
@@ -636,7 +636,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     end
   end
 
-  @spec get_currency_num(Exedra.User.Data, integer, list(String.t)) :: String.t
+  @spec get_currency_num(Exedra.Player.Data, integer, list(String.t)) :: String.t
   def get_currency_num(_, _, noun_rest) when length(noun_rest) < 1, do: not_here_text()
   def get_currency_num(player, num, noun_rest) do
     noun = List.first(noun_rest)
@@ -646,7 +646,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   @doc """
   Checks if the given noun is an alias for currency, and gets the requested amount, which may be :all
   """
-  @spec get_currency_noun_num(Exedra.User.Data, String.t, pos_integer|:all) :: String.t
+  @spec get_currency_noun_num(Exedra.Player.Data, String.t, pos_integer|:all) :: String.t
   def get_currency_noun_num(player, noun, num) do
     {:ok, room} = Exedra.Room.get(player.room_id)
     if !MapSet.member?(currency_nouns(), noun) || room.currency == 0 do
@@ -661,7 +661,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
         not_here_text()
       else
         # TODO atomic/lock; race condition
-        Exedra.User.set %{player | currency: player.currency + num}
+        Exedra.Player.set %{player | currency: player.currency + num}
         Exedra.Room.set %{room | currency: room.currency - num}
         if num == 1 do
           "You get a " <> currency_text_singular() <> "."
@@ -678,7 +678,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   def currency_text_plural(),   do: "gold coins"
   def currency_color(),         do: Exedra.ANSI.colors[:yellow]
 
-  @spec get_npc_by_name(Exedra.User.Data, Exedra.Room.Data, String.t, list(String.t)) :: :ok
+  @spec get_npc_by_name(Exedra.Player.Data, Exedra.Room.Data, String.t, list(String.t)) :: :ok
   def get_npc_by_name(player, room, name, args) do
     npc_id = Enum.find room.npcs, fn(npc_id) ->
       {:ok, npc} = Exedra.NPC.get(npc_id)

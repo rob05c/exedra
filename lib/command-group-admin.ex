@@ -91,12 +91,12 @@ defmodule Exedra.CommandGroup.Admin do
     end
   end
 
-  @spec room_describe_item_by_id(Exedra.User.Data, String.t, integer) :: :ok
+  @spec room_describe_item_by_id(Exedra.Player.Data, String.t, integer) :: :ok
   def room_describe_item_by_id(player_name, room_description, id) do
     GenServer.call WorldManager, {:room_describe_item_by_id, player_name, room_description, id}
   end
 
-  @spec room_describe_item_by_name(Exedra.User, String.t, String.t) :: :ok
+  @spec room_describe_item_by_name(Exedra.Player, String.t, String.t) :: :ok
   def room_describe_item_by_name(player_name, room_description, name) do
     GenServer.call WorldManager, {:room_describe_item_by_name, player_name, room_description, name}
   end
@@ -116,12 +116,12 @@ defmodule Exedra.CommandGroup.Admin do
     end
   end
 
-  @spec describe_item_by_id(Exedra.User.Data, String.t, integer) :: :ok
+  @spec describe_item_by_id(Exedra.Player.Data, String.t, integer) :: :ok
   def describe_item_by_id(player_name, description, id) do
     GenServer.call WorldManager, {:describe_item_by_id, player_name, description, id}
   end
 
-  @spec describe_item_by_name(Exedra.User.Data, String.t, String.t) :: :ok
+  @spec describe_item_by_name(Exedra.Player.Data, String.t, String.t) :: :ok
   def describe_item_by_name(player_name, description, name) do
     GenServer.call WorldManager, {:describe_item_by_name, player_name, description, name}
   end

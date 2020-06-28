@@ -47,7 +47,7 @@ defmodule Exedra.NPC.Eventor.RepeatedEmote do
     Exedra.NPC.set %{npc | event_data: Map.put(npc.event_data, name(), data)}
     # Logger.info "wander_npc " <> npc.brief <> " count " <> to_string(data)
 
-    # {:ok, player} = Exedra.User.get player_name
+    # {:ok, player} = Exedra.Player.get player_name
     {:ok, room} = Exedra.Room.get npc.room_id
 
     msg = case rem(data, 4) do

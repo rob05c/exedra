@@ -52,7 +52,7 @@ defmodule Exedra.NPC do
     # debug - writing all objects to disk every change doesn't scale
     :ets.tab2file(:npcs, String.to_charlist(@data_file), sync: true)
 
-    Exedra.User.set(%{player | npcs: MapSet.put(player.npcs, new_npc.id)})
+    Exedra.Player.set(%{player | npcs: MapSet.put(player.npcs, new_npc.id)})
 
     new_npc
   end
@@ -60,14 +60,14 @@ defmodule Exedra.NPC do
   def pickup(npc_id, room, player) do
     {:ok, npc} = Exedra.NPC.get npc_id
     Exedra.Room.set(%{room | npcs: MapSet.delete(room.npcs, npc_id)})
-    Exedra.User.set(%{player | npcs: MapSet.put(player.npcs, npc_id)})
+    Exedra.Player.set(%{player | npcs: MapSet.put(player.npcs, npc_id)})
     Exedra.NPC.set(%{npc | room_id: -1})
   end
 
   def drop(npc_id, room, player) do
     Logger.info "NPC.drop"
     {:ok, npc} = Exedra.NPC.get npc_id
-    Exedra.User.set(%{player | npcs: MapSet.delete(player.npcs, npc_id)})
+    Exedra.Player.set(%{player | npcs: MapSet.delete(player.npcs, npc_id)})
     Exedra.Room.set(%{room | npcs: MapSet.put(room.npcs, npc_id)})
     Exedra.NPC.set(%{npc | room_id: room.id})
   end
@@ -138,7 +138,7 @@ defmodule Exedra.NPC do
   def set(npc) do
     :ets.insert(:npcs, {npc.id, npc})
 
-    # debug - writing all users to disk every time someone moves doesn't scale.
+    # debug - writing all players to disk every time someone moves doesn't scale.
     :ets.tab2file(:npcs, String.to_charlist(@data_file), sync: true)
   end
 
@@ -194,7 +194,7 @@ defmodule Exedra.NPC do
   """
   @spec do_inspect_npc(String.t, String.t) :: String.t
   def do_inspect_npc(player_name, npc_name_or_id) do
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     {:ok, room} = Exedra.Room.get(player.room_id)
     npc_or_nil = Exedra.NPC.find_in npc_name_or_id, room.npcs
     if npc_or_nil == nil do
@@ -249,7 +249,7 @@ Room ID: #{npc.room_id}
   def do_add_action(player_name, args) do
     npc_name_or_id = Enum.at args, 0
     action_name = Enum.at args, 1
-    {:ok, player} = Exedra.User.get(player_name)
+    {:ok, player} = Exedra.Player.get(player_name)
     {:ok, room} = Exedra.Room.get(player.room_id)
 
     npc_or_nil = find_in(npc_name_or_id, room.npcs)
@@ -291,7 +291,7 @@ Room ID: #{npc.room_id}
   def do_add_event(player_name, args) do
     npc_name_or_id = Enum.at args, 0
     event_name = Enum.at args, 1
-    {:ok, player} = Exedra.User.get player_name
+    {:ok, player} = Exedra.Player.get player_name
     {:ok, room} = Exedra.Room.get player.room_id
 
     npc_or_nil = find_in npc_name_or_id, room.npcs

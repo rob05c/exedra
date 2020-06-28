@@ -76,12 +76,12 @@ defmodule Exedra.Room do
   def set(room) do
     :ets.insert(:rooms, {room.id, room})
 
-    # debug - writing all users to disk every time someone moves doesn't scale.
+    # debug - writing all players to disk every time someone moves doesn't scale.
     :ets.tab2file(:rooms, String.to_charlist(@data_file), sync: true)
   end
 
   def print(room, brief, self_player_name) do
-    # TODO: add user custom colouring
+    # TODO: add player custom colouring
     s = ANSI.colors[:brown] <> room.title <> ANSI.colors[:reset] <> "\n"
     s = if brief do
       s
@@ -295,10 +295,10 @@ defmodule Exedra.Room do
   find_npc_or_player_name_or_id finds the NPC or Player with the given name or ID.
   Returns {:npc, id}, {:player, id}, or :not_found.
   """
-  @spec find_npc_or_player_name_or_id(Exedra.Room.Data, integer) :: {:npc, Exedra.NPC.Data} | {:player, Exedra.User.Data} | :not_found
+  @spec find_npc_or_player_name_or_id(Exedra.Room.Data, integer) :: {:npc, Exedra.NPC.Data} | {:player, Exedra.Player.Data} | :not_found
   def find_npc_or_player_name_or_id(room, name_or_id) do
     Logger.info "Room.fnopnoi '" <> name_or_id <> "'"
-    player_or_nil = Exedra.User.find_in(name_or_id, room.players)
+    player_or_nil = Exedra.Player.find_in(name_or_id, room.players)
     if player_or_nil != nil do
       {:player, player_or_nil}
     else
