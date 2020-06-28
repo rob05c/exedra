@@ -3,19 +3,17 @@ defmodule Exedra.Item do
 
   @data_file "data/items"
 
-  defmodule Data do
-    @enforce_keys [:id, :name, :brief]
-    # name is a single word, like 'sword' or 'feather'. This is the keyword used to issue commands like 'drop sword'.
-    # brief is a noun clause, like 'a wooden sword' or 'a dull, blue orb'. This is what is seen in arbitrary locations, such as inventory and wielding.
-    # description is a paragraph. This is what is seen when inspecting an item in detail, for example 'probe sword'.
-    # room_description is a declarative sentence, complete with period.. It is what is seen when the item is on the ground. For example, 'a chipped wooden sword lies here, muddy with footprints.'
-    defstruct id:               0,
-              name:             "",
-              brief:            "",
-              description:      "",
-              room_description: "",
-              currency:         0
-  end
+  # name is a single word, like 'sword' or 'feather'. This is the keyword used to issue commands like 'drop sword'.
+  # brief is a noun clause, like 'a wooden sword' or 'a dull, blue orb'. This is what is seen in arbitrary locations, such as inventory and wielding.
+  # description is a paragraph. This is what is seen when inspecting an item in detail, for example 'probe sword'.
+  # room_description is a declarative sentence, complete with period.. It is what is seen when the item is on the ground. For example, 'a chipped wooden sword lies here, muddy with footprints.'
+  @enforce_keys [:id, :name, :brief]
+  defstruct id:               0,
+    name:             "",
+    brief:            "",
+    description:      "",
+    room_description: "",
+    currency:         0
 
   def load() do
     File.mkdir_p! Path.dirname(@data_file)
@@ -32,7 +30,7 @@ defmodule Exedra.Item do
 
   def create(player, name, brief) do
     next_id = :ets.update_counter(:items, :next_id, 1, {1,0})
-    new_item = %Exedra.Item.Data{id: next_id, name: name, brief: brief}
+    new_item = %Exedra.Item{id: next_id, name: name, brief: brief}
     :ets.insert_new(:items, {next_id, new_item})
 
     # debug - writing all objects to disk every change doesn't scale
@@ -83,9 +81,9 @@ defmodule Exedra.Item do
   Finds the item name or id in the given set of IDs.
   Returns the item, or nil.
   """
-  @spec find_in(String.t, MapSet.t) :: Exedra.Item.Data | nil
+  @spec find_in(String.t, MapSet.t) :: Exedra.Item | nil
   def find_in(name_or_id, ids) do
-    # TODO change to return {:ok, Item.t} | :error ??
+    # TODO change to return {:ok, Item} | :error ??
     case Integer.parse(name_or_id) do
       {id, _} ->
         find_id_in(id, ids)
@@ -98,7 +96,7 @@ defmodule Exedra.Item do
   Finds the item id in the given set of IDs.
   Returns the item, or nil.
   """
-  @spec find_id_in(integer, MapSet.t) :: Exedra.Item.Data | nil
+  @spec find_id_in(integer, MapSet.t) :: Exedra.Item | nil
   def find_id_in(id, ids) do
     if MapSet.member?(ids, id) do
       {:ok, item} = Exedra.Item.get(id)
@@ -112,7 +110,7 @@ defmodule Exedra.Item do
   Finds the item name in the given set of IDs.
   Returns the item, or nil.
   """
-  @spec find_name_in(String.t, MapSet.t) :: Exedra.Item.Data | nil
+  @spec find_name_in(String.t, MapSet.t) :: Exedra.Item | nil
   def find_name_in(name, ids) do
     id = Enum.find ids, fn(id) ->
       {:ok, item} = Exedra.Item.get(id) # TODO avoid multiple gets
@@ -168,7 +166,7 @@ defmodule Exedra.Item do
   give_item_to gives the item in the player's inventory to the target.
   The target may be the ID or name of an NPC or player in the same room.
   """
-  @spec give_item_to(Exedra.Player.Data, Exedra.Item.Data, String.t) :: String.t
+  @spec give_item_to(Exedra.Player.t, Exedra.Item, String.t) :: String.t
   def give_item_to(player, item, target_name_or_id) do
     {:ok, room} = Exedra.Room.get(player.room_id)
     case Exedra.Room.find_npc_or_player_name_or_id(room, target_name_or_id) do
@@ -184,7 +182,7 @@ defmodule Exedra.Item do
   @doc """
   Gives the item in the player's inventory to the target player.
   """
-  @spec give_item_to_player(Exedra.Player.Data, Exedra.Item.Data, Exedra.Player.Data) :: String.t
+  @spec give_item_to_player(Exedra.Player.t, Exedra.Item, Exedra.Player.t) :: String.t
   def give_item_to_player(player, item, target_player) do
     Exedra.Player.set(%{target_player | items: MapSet.put(target_player.items, item.id)})
     Exedra.Player.set(%{player | items: MapSet.delete(player.items, item.id)})
@@ -196,7 +194,7 @@ defmodule Exedra.Item do
   @doc """
   Gives the item in the player's inventory to the npc.
   """
-  @spec give_item_to_npc(Exedra.Player.Data, Exedra.Item.Data, Exedra.NPC.Data) :: String.t
+  @spec give_item_to_npc(Exedra.Player, Exedra.Item, Exedra.NPC) :: String.t
   def give_item_to_npc(player, item, npc) do
     Exedra.NPC.set(%{npc | items: MapSet.put(npc.items, item.id)})
     Exedra.Player.set(%{player | items: MapSet.delete(player.items, item.id)})

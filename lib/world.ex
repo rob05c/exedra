@@ -588,7 +588,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   #   {:noreply, data}
   # end
 
-  @spec get_item_by_id(Exedra.Player.Data, Exedra.Room.Data, integer, list(String.t)) :: String.t
+  @spec get_item_by_id(Exedra.Player.t, Exedra.Room.t, integer, list(String.t)) :: String.t
   def get_item_by_id(player, room, id, args) do
     cond do
       MapSet.member?(room.items, id) ->
@@ -607,7 +607,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     end
   end
 
-  @spec get_item_by_name(Exedra.Player.Data, Exedra.Room.Data, String.t, list(String.t)) :: String.t
+  @spec get_item_by_name(Exedra.Player.t, Exedra.Room.t, String.t, list(String.t)) :: String.t
   def get_item_by_name(player, room, name, args) do
     item_id = Enum.find room.items, fn(item_id) ->
       {:ok, item} = Exedra.Item.get(item_id)
@@ -622,7 +622,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     end
   end
 
-  @spec get_currency(Exedra.Player.Data, nonempty_list(String.t)) :: String.t
+  @spec get_currency(Exedra.Player.t, nonempty_list(String.t)) :: String.t
   def get_currency(player, args) do
     # TODO add room arg, since everything calling this has it? Or wait until Mnesia is added?
     # TODO: combine with get_item() to only call Integer.parse, Player.get once.
@@ -636,7 +636,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     end
   end
 
-  @spec get_currency_num(Exedra.Player.Data, integer, list(String.t)) :: String.t
+  @spec get_currency_num(Exedra.Player.t, integer, list(String.t)) :: String.t
   def get_currency_num(_, _, noun_rest) when length(noun_rest) < 1, do: not_here_text()
   def get_currency_num(player, num, noun_rest) do
     noun = List.first(noun_rest)
@@ -646,7 +646,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   @doc """
   Checks if the given noun is an alias for currency, and gets the requested amount, which may be :all
   """
-  @spec get_currency_noun_num(Exedra.Player.Data, String.t, pos_integer|:all) :: String.t
+  @spec get_currency_noun_num(Exedra.Player.t, String.t, pos_integer|:all) :: String.t
   def get_currency_noun_num(player, noun, num) do
     {:ok, room} = Exedra.Room.get(player.room_id)
     if !MapSet.member?(currency_nouns(), noun) || room.currency == 0 do
@@ -678,7 +678,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   def currency_text_plural(),   do: "gold coins"
   def currency_color(),         do: Exedra.ANSI.colors[:yellow]
 
-  @spec get_npc_by_name(Exedra.Player.Data, Exedra.Room.Data, String.t, list(String.t)) :: :ok
+  @spec get_npc_by_name(Exedra.Player.t, Exedra.Room.t, String.t, list(String.t)) :: :ok
   def get_npc_by_name(player, room, name, args) do
     npc_id = Enum.find room.npcs, fn(npc_id) ->
       {:ok, npc} = Exedra.NPC.get(npc_id)

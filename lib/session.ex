@@ -1,12 +1,6 @@
 defmodule Exedra.SessionManager do
   use GenServer
 
-  defmodule Data do
-    @enforce_keys [:player, :pid]
-    defstruct player: "",
-              pid:  0
-  end
-
   @spec get(GenServer.server, String.t) :: {:ok, pid} | :error
   def get(server, player) do
     GenServer.call server, {:get, player}

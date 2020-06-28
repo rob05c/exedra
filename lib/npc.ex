@@ -3,33 +3,33 @@ defmodule Exedra.NPC do
 
   @data_file "data/npcs"
 
-  defmodule Data do
-    @enforce_keys [:id, :name, :brief]
-    # name elf
-    # brief a stately elf
-    # description is a paragraph
-    # room_description A stately elf patrols the area diligently.
-    # dead_description An elf lies on the ground in a pool of blood, no longer stately.
-    # exit_description A stately elf leaves to the $dir
-    # entry_description A stately elf enters from the $dir
-    # plural_brief elves
-    defstruct id:                0,
-      name:              "",
-      brief:             "",
-      description:       "",
-      room_description:  "",
-      dead_description:  "",
-      exit_description:  "",
-      entry_description: "",
-      plural_brief:      "",
-      currency:          0,
-      items:             MapSet.new, # set<item_id>
-      actors:            [],  # [NPCActor]
-      actor_data:        %{}, # map<actor.name(), data>
-      events:            [],  # [Exedra.NPC.Eventor]
-      event_data:        %{}, # map<hook.name(), data>
-      room_id:           -1
-  end
+  # name elf
+  # brief a stately elf
+  # description is a paragraph
+  # room_description A stately elf patrols the area diligently.
+  # dead_description An elf lies on the ground in a pool of blood, no longer stately.
+  # exit_description A stately elf leaves to the $dir
+  # entry_description A stately elf enters from the $dir
+  # plural_brief elves
+  @enforce_keys [:id, :name, :brief]
+  defstruct [
+    id:                0,
+    name:              "",
+    brief:             "",
+    description:       "",
+    room_description:  "",
+    dead_description:  "",
+    exit_description:  "",
+    entry_description: "",
+    plural_brief:      "",
+    currency:          0,
+    items:             MapSet.new, # set<item_id>
+    actors:            [],  # [NPCActor]
+    actor_data:        %{}, # map<actor.name(), data>
+    events:            [],  # [Exedra.NPC.Eventor]
+    event_data:        %{}, # map<hook.name(), data>
+    room_id:           -1
+  ]
 
   def load() do
     File.mkdir_p! Path.dirname(@data_file)
@@ -46,7 +46,7 @@ defmodule Exedra.NPC do
 
   def create(player, name, brief) do
     next_id = :ets.update_counter(:npcs, :next_id, 1, {1,0})
-    new_npc = %Exedra.NPC.Data{id: next_id, name: name, brief: brief}
+    new_npc = %Exedra.NPC{id: next_id, name: name, brief: brief}
     :ets.insert_new(:npcs, {next_id, new_npc})
 
     # debug - writing all objects to disk every change doesn't scale
@@ -90,8 +90,8 @@ defmodule Exedra.NPC do
     case :ets.lookup(:npcs, id) do
       [{_, ets_npc}] ->
         # if the struct was modified after it was saved, it won't match. So we need to cast it
-        # to the latest Exedra.NPC.Data struct. Otherwise we'll get 'key not found' errors.
-        npc = struct(Exedra.NPC.Data, Map.from_struct(ets_npc))
+        # to the latest Exedra.NPC struct. Otherwise we'll get 'key not found' errors.
+        npc = struct(Exedra.NPC, Map.from_struct(ets_npc))
         {:ok, npc}
       [] ->
         :error
@@ -148,9 +148,9 @@ defmodule Exedra.NPC do
   Finds the npc name or id in the given set of IDs.
   Returns the npc, or nil.
   """
-  @spec find_in(String.t, MapSet.t) :: Exedra.NPC.Data | nil
+  @spec find_in(String.t, MapSet.t) :: Exedra.NPC | nil
   def find_in(name_or_id, ids) do
-    # TODO change to return {:ok, NPC.t} | :error ??
+    # TODO change to return {:ok, NPC} | :error ??
     case Integer.parse(name_or_id) do
       {id, _} ->
         find_id_in(id, ids)
@@ -163,7 +163,7 @@ defmodule Exedra.NPC do
   Finds the npc id in the given set of IDs.
   Returns the npc, or nil.
   """
-  @spec find_id_in(integer, MapSet.t) :: Exedra.NPC.Data | nil
+  @spec find_id_in(integer, MapSet.t) :: Exedra.NPC | nil
   def find_id_in(id, ids) do
     if MapSet.member?(ids, id) do
       {:ok, npc} = Exedra.NPC.get(id)
@@ -177,7 +177,7 @@ defmodule Exedra.NPC do
   Finds the npc name in the given set of IDs.
   Returns the npc, or nil.
   """
-  @spec find_name_in(String.t, MapSet.t) :: Exedra.NPC.Data | nil
+  @spec find_name_in(String.t, MapSet.t) :: Exedra.NPC | nil
   def find_name_in(name, ids) do
     id = Enum.find ids, fn(id) ->
       {:ok, npc} = Exedra.NPC.get(id) # TODO avoid multiple gets
@@ -208,7 +208,7 @@ defmodule Exedra.NPC do
   Handles an inspectnpc call from the player.
   Returns the NPC inspect text, or a not-found message.
   """
-  @spec inspect(Exedra.NPC.Data) :: String.t
+  @spec inspect(Exedra.NPC) :: String.t
   def inspect(npc) do
     msg = """
 Name:  #{npc.name}
@@ -278,7 +278,7 @@ Room ID: #{npc.room_id}
   @doc """
   Adds the given action to the npc.
   """
-  @spec add_action(Exedra.NPC.Data, module) :: nil
+  @spec add_action(Exedra.NPC, module) :: nil
   def add_action(npc, action) do
     Exedra.NPC.set(%{npc | actors: npc.actors ++ [action]})
   end
@@ -320,7 +320,7 @@ Room ID: #{npc.room_id}
   @doc """
   Adds the given event to the npc.
   """
-  @spec add_event(Exedra.NPC.Data, module) :: nil
+  @spec add_event(Exedra.NPC, module) :: nil
   def add_event(npc, event) do
     Exedra.NPC.set(%{npc | events: npc.events ++ [event]})
   end

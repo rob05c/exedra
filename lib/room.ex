@@ -7,18 +7,18 @@ defmodule Exedra.Room do
 
   @data_file "data/rooms"
 
-  defmodule Data do
-    @enforce_keys [:id, :title, :description]
-    defstruct id:          0,
-      title:       "",
-      description: "",
-      exits:       %{},
-      # container:   Container.t,
-      items:       MapSet.new, # set<item_id>
-      players:     MapSet.new, # set<player_name>
-      npcs:        MapSet.new, # set<npc_id>
-      currency:    0
-  end
+  @enforce_keys [:id, :title, :description]
+  defstruct [
+    id:          0,
+    title:       "",
+    description: "",
+    exits:       %{},
+    # container:   Container.t,
+    items:       MapSet.new, # set<item_id>
+    players:     MapSet.new, # set<player_name>
+    npcs:        MapSet.new, # set<npc_id>
+    currency:    0
+  ]
 
   @room_zero %{
     title: "Primordial Fog",
@@ -34,14 +34,14 @@ defmodule Exedra.Room do
       {:error, _} ->
         IO.puts "Rooms file didn't exist, creating new table"
         :rooms = :ets.new(:rooms, [:named_table, :set, :public])
-        :ets.insert_new(:rooms, {0, %Exedra.Room.Data{id: 0, title: @room_zero.title, description: @room_zero.description}})
+        :ets.insert_new(:rooms, {0, %Exedra.Room{id: 0, title: @room_zero.title, description: @room_zero.description}})
     end
     :ok
   end
 
   def create(title, description) do
     next_id = :ets.update_counter(:rooms, :next_id, 1, {1,0})
-    new_room = %Exedra.Room.Data{id: next_id, title: title, description: description}
+    new_room = %Exedra.Room{id: next_id, title: title, description: description}
     :ets.insert_new(:rooms, {next_id, new_room})
     # debug - writing all objects to disk every change doesn't scale
     :ets.tab2file(:rooms,String.to_charlist(@data_file), sync: true)
@@ -186,7 +186,7 @@ defmodule Exedra.Room do
   Sends the message to all players in the room, except the exceptions.
   This is generally used for things like targetted emotes, which will send custom messages to the targeter and targetee.
   """
-  @spec message_players_except(Exedra.Room.Data, String.t, [String.t]) :: nil
+  @spec message_players_except(Exedra.Room, String.t, [String.t]) :: nil
   def message_players_except(room, msg, player_name_exceptions) do
     Enum.map room.players, fn(room_player_name) ->
       case Exedra.SessionManager.get(Exedra.SessionManager, room_player_name) do
@@ -295,7 +295,7 @@ defmodule Exedra.Room do
   find_npc_or_player_name_or_id finds the NPC or Player with the given name or ID.
   Returns {:npc, id}, {:player, id}, or :not_found.
   """
-  @spec find_npc_or_player_name_or_id(Exedra.Room.Data, integer) :: {:npc, Exedra.NPC.Data} | {:player, Exedra.Player.Data} | :not_found
+  @spec find_npc_or_player_name_or_id(Exedra.Room, integer) :: {:npc, Exedra.NPC} | {:player, Exedra.Player} | :not_found
   def find_npc_or_player_name_or_id(room, name_or_id) do
     Logger.info "Room.fnopnoi '" <> name_or_id <> "'"
     player_or_nil = Exedra.Player.find_in(name_or_id, room.players)

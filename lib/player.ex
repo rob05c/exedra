@@ -3,19 +3,18 @@ defmodule Exedra.Player do
 
   @data_file "data/players"
 
-  defmodule Data do
-    @enforce_keys [:name, :room_id, :password]
-    # TODO: don't store pass in plaintext
-    defstruct [
-      name:     "",
-      password: "",
-      room_id:  0,
-      items:    MapSet.new,
-      npcs:     MapSet.new,
-      currency: 0,
-      command_groups: []
-    ]
-  end
+
+  # TODO: don't store pass in plaintext
+  @enforce_keys [:name, :room_id, :password]
+  defstruct [
+    name:     "",
+    password: "",
+    room_id:  0,
+    items:    MapSet.new,
+    npcs:     MapSet.new,
+    currency: 0,
+    command_groups: []
+  ]
 
   def load() do
     File.mkdir_p! Path.dirname(@data_file)
@@ -40,7 +39,7 @@ defmodule Exedra.Player do
       [{^player_name, player_data}] ->
         player_data.password == pass
       [] ->
-        new_player = %Exedra.Player.Data{
+        new_player = %Exedra.Player{
           name:           player_name,
           password:       pass,
           room_id:        default_room,
@@ -84,7 +83,7 @@ defmodule Exedra.Player do
   Finds the player name in the given set of names.
   Returns the player, or nil.
   """
-  @spec find_in(String.t, MapSet.t) :: Exedra.Player.Data | nil
+  @spec find_in(String.t, MapSet.t) :: Exedra.Player | nil
   def find_in(name, names) do
     # TODO fuzzy match, or remove this
     name = Enum.find names, fn(names_name) ->
@@ -99,7 +98,7 @@ defmodule Exedra.Player do
       end
   end
 
-  @spec message(Exedra.Player.Data, String.t) ::  nil
+  @spec message(Exedra.Player, String.t) ::  nil
   def message(player, msg) do
     # Logger.info "message_players"
     # Logger.info inspect(room.players)

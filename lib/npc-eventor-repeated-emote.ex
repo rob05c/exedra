@@ -1,5 +1,4 @@
 defmodule Exedra.NPC.Eventor.RepeatedEmote do
-  alias Exedra.WorldManager, as: WorldManager
   alias Exedra.NPC.Eventor, as: Eventor
   require Logger
 
@@ -34,8 +33,8 @@ defmodule Exedra.NPC.Eventor.RepeatedEmote do
   Handle the event for an NPC which is in a room.
   Takes the NPC, the player name doing the emote, and the name of the emote.
   """
-  @spec on_emote_npc(Exedra.NPC.Data, String.t, String.t) :: nil
-  def on_emote_npc(npc, _, _) do
+  @spec on_emote_npc(Exedra.NPC, String.t, String.t) :: nil
+  def on_emote_npc(npc, _player_name, _emote_name) do
     # data is the number of times this NPC has been emoted to.
     data = Map.get(npc.event_data, name())
     data = if data != nil do

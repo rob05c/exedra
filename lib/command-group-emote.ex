@@ -62,7 +62,7 @@ defmodule Exedra.CommandGroup.Emote do
     end
   end
 
-  @spec emote_player(module, Exedra.Player.Data, Exedra.Room.Data, Exedra.Player.Data) :: String.t
+  @spec emote_player(module, Exedra.Player, Exedra.Room, Exedra.Player) :: String.t
   def emote_player(emote, player, room, target_player) do
     others_msg = emote.target_third player.name, target_player.name
     target_msg = emote.target_second player.name, target_player.name
@@ -72,7 +72,7 @@ defmodule Exedra.CommandGroup.Emote do
     self_msg
   end
 
-  @spec emote_npc(module, Exedra.Player.Data, Exedra.Room.Data, Exedra.NPC.Data) :: String.t
+  @spec emote_npc(module, Exedra.Player, Exedra.Room, Exedra.NPC) :: String.t
   def emote_npc(emote, player, room, npc) do
     others_msg = emote.target_third player.name, npc.brief
     self_msg = emote.target_first player.name, npc.brief
@@ -87,7 +87,7 @@ defmodule Exedra.CommandGroup.Emote do
     ""
   end
 
-  @spec emote_item(module, Exedra.Player.Data, Exedra.Room.Data, Exedra.Item.Data) :: String.t
+  @spec emote_item(module, Exedra.Player, Exedra.Room, Exedra.Item) :: String.t
   def emote_item(emote, player, room, item) do
     others_msg = emote.target_third player.name, item.brief
     self_msg = emote.target_first player.name, item.brief
@@ -95,7 +95,7 @@ defmodule Exedra.CommandGroup.Emote do
     self_msg
   end
 
-  @spec emote_none(module, Exedra.Player.Data, Exedra.Room.Data) :: String.t
+  @spec emote_none(module, Exedra.Player, Exedra.Room) :: String.t
   def emote_none(emote, player, room) do
     others_msg = emote.third player.name
     self_msg = emote.first player.name
