@@ -12,7 +12,7 @@ defmodule Exedra.CommandGroup.Emote do
   def exec(_, _), do: :unhandled
 
   def emote(player_name, emote, args) do
-    WorldManager.emote Exedra.WorldManager, player_name, emote, args
+    GenServer.call WorldManager, {:emote, player_name, emote, args}
   end
 
   @doc """

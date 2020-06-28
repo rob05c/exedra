@@ -14,7 +14,10 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   use GenServer
   require Logger
 
-  # @spec user_exec(list(String.t), String.t) :: String.t
+  @doc """
+  Executes the command from the given user, returning the response to send the user.
+  """
+  @spec user_exec(list(String.t), String.t) :: String.t
   def user_exec(input_words, player_name) do
     {:ok, player} = Exedra.User.get(player_name)
     output = Enum.reduce_while(player.command_groups, :unhandled, fn command_group, _ ->
@@ -27,111 +30,13 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
     end)
     case output do
       :unhandled ->
-        unknown_msg()
+        unknown_command_msg()
       x ->
         x
     end
   end
 
-  def unknown_msg() do
-    "I don't understand."
-  end
-
-  def pickup_item_by_id(server, user_name, item_id, args) do
-    GenServer.call server, {:pickup_item_by_id, user_name, item_id, args}
-  end
-
-  def pickup_item_by_name(server, user_name, item_name, args) do
-    GenServer.call server, {:pickup_item_by_name, user_name, item_name, args}
-  end
-
-  def drop_item(server, player_name, args) do
-    GenServer.call server, {:drop_item, player_name, args}
-  end
-
-  def give(server, player_name, args) do
-    GenServer.call server, {:give, player_name, args}
-  end
-
-  def move(server, player_name, direction) do
-    GenServer.call server, {:move, player_name, direction}
-  end
-
-  def create_currency(server, player_name, args) do
-    GenServer.call server, {:create_currency, player_name, args}
-  end
-
-  def create_item(server, player_name, args) do
-    GenServer.call server, {:create_item, player_name, args}
-  end
-
-  def create_npc(server, player_name, args) do
-    GenServer.call server, {:create_npc, player_name, args}
-  end
-
-  def inspect_npc(server, player_name, args) do
-    GenServer.call server, {:inspect_npc, player_name, args}
-  end
-
-  def add_npc_action(server, player_name, args) do
-    GenServer.call server, {:add_npc_action, player_name, args}
-  end
-
-  def create_room(server, player_name, args) do
-    GenServer.call server, {:create_room, player_name, args}
-  end
-
-  def quick_look(server, player_name) do
-    GenServer.call server, {:quick_look, player_name}
-  end
-
-  def look(server, player_name) do
-    GenServer.call server, {:look, player_name}
-  end
-
-  def items(server, player_name) do
-    GenServer.call server, {:items, player_name}
-  end
-
-  def item_info(server, player_name) do
-    GenServer.call server, {:item_info, player_name}
-  end
-
-  def info_here(server, player_name) do
-    GenServer.call server, {:info_here, player_name}
-  end
-
-  def say(server, player_name, args) do
-    GenServer.call server, {:say, player_name, args}
-  end
-
-  def tell(server, player_name, target_player_name, said_words) do
-    GenServer.call server, {:tell, player_name, target_player_name, said_words}
-  end
-
-  def room_describe_item_by_id(server, player_name, room_description, id) do
-    GenServer.call server, {:room_describe_item_by_id, player_name, room_description, id}
-  end
-
-  def room_describe_item_by_name(server, player_name, room_description, name) do
-    GenServer.call server, {:room_describe_item_by_name, player_name, room_description, name}
-  end
-
-  def describe_item_by_id(server, player_name, description, id) do
-    GenServer.call server, {:describe_item_by_id, player_name, description, id}
-  end
-
-  def describe_item_by_name(server, player_name, description, name) do
-    GenServer.call server, {:describe_item_by_name, player_name, description, name}
-  end
-
-  def npc_wander(server, npc_id) do
-    GenServer.call server, {:npc_wander, npc_id}
-  end
-
-  def emote(server, player_name, emote, args) do
-    GenServer.call server, {:emote, player_name, emote, args}
-  end
+  def unknown_command_msg(), do: "I don't understand."
 
   # @spec set(GenServer.server, String.t, pid) :: :ok
   # def set(server, user, pid) do
@@ -142,7 +47,6 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
   # def delete(server, user) do
   #   GenServer.cast server, {:delete, user}
   # end
-
 
   @spec init([]) :: {:ok, %{}}
   def init([]) do

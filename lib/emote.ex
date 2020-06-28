@@ -6,6 +6,11 @@ Emotes have a message to send to first, second, and third person; both targetted
 """
 
   @doc """
+  The name of the emote.
+  """
+  @callback name() :: String.t
+
+  @doc """
   For untargetted emotes.
   Takes the first person name, and returns the first-person message.
   """

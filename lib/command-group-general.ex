@@ -82,7 +82,7 @@ help                                ?
   end
 
   def say(player_name, args) do
-    WorldManager.say(Exedra.WorldManager, player_name, args)
+    GenServer.call WorldManager, {:say, player_name, args}
   end
 
   def tell_color(), do: Exedra.ANSI.colors[:yellow]
@@ -93,7 +93,7 @@ help                                ?
   def tell(_, args) when length(args) < 2,                 do: tell_no_such_player_msg()
   def tell(player_name, [player_name | said_words]),       do: tell_crazy_msg(Enum.join(said_words, " "))
   def tell(player_name, [target_player_name | said_words]) do
-    WorldManager.tell(Exedra.WorldManager, player_name, target_player_name, said_words)
+    GenServer.call WorldManager, {:tell, player_name, target_player_name, said_words}
   end
   def tell_no_such_player_msg(), do: tell_color() <> "Who do you want to tell?" <> reset_color()
   def tell_crazy_msg(text), do: tell_color() <> "You think to yourself, \"" <> ensure_sentence(text) <> "\"" <> reset_color()
@@ -122,23 +122,23 @@ help                                ?
   def currency_color(),         do: Exedra.ANSI.colors[:yellow]
 
   def items(player_name) do
-    WorldManager.items(Exedra.WorldManager, player_name)
+    GenServer.call WorldManager, {:items, player_name}
   end
 
   def item_info(player_name) do
-    WorldManager.item_info(Exedra.WorldManager, player_name)
+    GenServer.call WorldManager, {:item_info, player_name}
   end
 
   def info_here(player_name) do
-    WorldManager.info_here(Exedra.WorldManager, player_name)
+    GenServer.call WorldManager, {:info_here, player_name}
   end
 
   def look(player_name) do
-    WorldManager.look(Exedra.WorldManager, player_name)
+    GenServer.call WorldManager, {:look, player_name}
   end
 
   def quick_look(player_name) do
-    WorldManager.quick_look(Exedra.WorldManager, player_name)
+    GenServer.call WorldManager, {:quick_look, player_name}
   end
 
   # TODO use guards to reduce indentation
@@ -147,19 +147,14 @@ help                                ?
 
   def get_item(user_name, args) do
     item_name_or_id = List.first(args)
-    reply_str = case Integer.parse(item_name_or_id) do
-                  {item_id, _} ->
-                    # Logger.error "get_item id is " <> item_id
-                   {:ok, reply_str} = Exedra.WorldManager.pickup_item_by_id(Exedra.WorldManager, user_name, item_id, args)
-                   # Logger.error "get_item id '" <> item_id <> "' reply '" <> reply_str <> "'"
-                   reply_str
-                  :error ->
-                    # Logger.error "get_item id is error "
-                   item_name = item_name_or_id
-                   {:ok, reply_str} = Exedra.WorldManager.pickup_item_by_name(Exedra.WorldManager, user_name, item_name, args)
-                   reply_str
-               end
-    reply_str
+    case Integer.parse(item_name_or_id) do
+      {item_id, _} ->
+        {:ok, reply_str} = GenServer.call WorldManager, {:pickup_item_by_id, user_name, item_id, args}
+        reply_str
+      :error ->
+        {:ok, reply_str} = GenServer.call WorldManager, {:pickup_item_by_name, user_name, item_name_or_id, args}
+        reply_str
+    end
   end
 
   def get_item_msg(brief), do: "You pick up " <> brief <> "."
@@ -170,17 +165,17 @@ help                                ?
   def drop_item(player_name, args) do
     # TODO: abstract duplication with get_item
     # TODO: prevent dropping items which haven't had description or room_description set
-    Exedra.WorldManager.drop_item(Exedra.WorldManager, player_name, args)
+    GenServer.call WorldManager, {:drop_item, player_name, args}
   end
 
   def give(player_name, args) do
     # TODO: prevent giving items which haven't had description or room_description set
-    Exedra.WorldManager.give(Exedra.WorldManager, player_name, args)
+    GenServer.call WorldManager, {:give, player_name, args}
   end
 
   def move(player_name, direction) do
     # TODO: prevent moving from rooms without descriptions, and auto-move to on creation.
-    WorldManager.move(Exedra.WorldManager, player_name, direction)
+    GenServer.call WorldManager, {:move, player_name, direction}
   end
 
 end

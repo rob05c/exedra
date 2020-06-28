@@ -3,6 +3,9 @@ defmodule Exedra.Emote.Greet do
 
   @behaviour Emote
 
+  @impl
+  def name(), do: "greet"
+
   @impl Emote
   def first(_), do: "Greetings! You enthuse."
 

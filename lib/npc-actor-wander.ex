@@ -10,7 +10,7 @@ defmodule Exedra.NPCActor.Wander do
 
   @impl NPCActor
   def act(npc_id) do
-    WorldManager.npc_wander(Exedra.WorldManager, npc_id)
+    GenServer.call WorldManager, {:npc_wander, npc_id}
   end
 
   def wander(npc_id) do

@@ -24,7 +24,7 @@ defmodule Exedra.CommandGroup.Admin do
   def exec(_, _), do: :unhandled
 
   def create_room(player_name, args) do
-    WorldManager.create_room(Exedra.WorldManager, player_name, args)
+    GenServer.call WorldManager, {:create_room, player_name, args}
   end
 
   def create_no_name_desc_msg(), do: "You must specify a name and brief description."
@@ -32,14 +32,14 @@ defmodule Exedra.CommandGroup.Admin do
   @spec create_npc(String.t, list(String.t)) :: :ok
   def create_npc(_, args) when length(args) < 2, do: create_no_name_desc_msg()
   def create_npc(player_name, args) when length(args) >= 2 do
-    WorldManager.create_npc(Exedra.WorldManager, player_name, args)
+    GenServer.call WorldManager, {:create_npc, player_name, args}
   end
 
   def inspect_npc_no_name_desc_msg(), do: "Who do you want to inspect?"
 
   def inspect_npc(_, args) when length(args) < 1, do: inspect_npc_no_name_desc_msg()
   def inspect_npc(player_name, args) when length(args) >= 1 do
-    WorldManager.inspect_npc(Exedra.WorldManager, player_name, args)
+    GenServer.call WorldManager, {:inspect_npc, player_name, args}
   end
 
   def add_npc_action_no_npc_msg(), do: "Who do you want to add an action to?"
@@ -48,13 +48,13 @@ defmodule Exedra.CommandGroup.Admin do
   def add_npc_action(_, args) when length(args) < 1, do: add_npc_action_no_npc_msg()
   def add_npc_action(_, args) when length(args) < 2, do: add_npc_action_no_action_msg()
   def add_npc_action(player_name, args) when length(args) >= 2 do
-    WorldManager.add_npc_action Exedra.WorldManager, player_name, args
+    GenServer.call WorldManager, {:add_npc_action, player_name, args}
   end
 
   @spec create_item(String.t, list(String.t)) :: :ok
   def create_item(_, args) when length(args) < 2, do: create_no_name_desc_msg()
   def create_item(player_name, args) do
-    WorldManager.create_item(Exedra.WorldManager, player_name, args)
+    GenServer.call WorldManager, {:create_item, player_name, args}
   end
 
   def create_currency_no_name_desc_msg(), do: "You must specify a quantity."
@@ -62,7 +62,7 @@ defmodule Exedra.CommandGroup.Admin do
   @spec create_currency(String.t, list(String.t)) :: :ok
   def create_currency(_, args) when length(args) < 1, do: create_currency_no_name_desc_msg()
   def create_currency(player_name, args) do
-    WorldManager.create_currency(Exedra.WorldManager, player_name, args)
+    GenServer.call WorldManager, {:create_currency, player_name, args}
   end
 
   def describe_item_too_short_msg(), do: "What do you want to describe?"
@@ -83,12 +83,12 @@ defmodule Exedra.CommandGroup.Admin do
 
   @spec room_describe_item_by_id(Exedra.User.Data, String.t, integer) :: :ok
   def room_describe_item_by_id(player_name, room_description, id) do
-    Exedra.WorldManager.room_describe_item_by_id(Exedra.WorldManager, player_name, room_description, id)
+    GenServer.call WorldManager, {:room_describe_item_by_id, player_name, room_description, id}
   end
 
   @spec room_describe_item_by_name(Exedra.User, String.t, String.t) :: :ok
   def room_describe_item_by_name(player_name, room_description, name) do
-    Exedra.WorldManager.room_describe_item_by_name(Exedra.WorldManager, player_name, room_description, name)
+    GenServer.call WorldManager, {:room_describe_item_by_name, player_name, room_description, name}
   end
 
   # TODO: abstract duplication with room_describe_item
@@ -108,11 +108,11 @@ defmodule Exedra.CommandGroup.Admin do
 
   @spec describe_item_by_id(Exedra.User.Data, String.t, integer) :: :ok
   def describe_item_by_id(player_name, description, id) do
-    Exedra.WorldManager.describe_item_by_id(Exedra.WorldManager, player_name, description, id)
+    GenServer.call WorldManager, {:describe_item_by_id, player_name, description, id}
   end
 
   @spec describe_item_by_name(Exedra.User.Data, String.t, String.t) :: :ok
   def describe_item_by_name(player_name, description, name) do
-    Exedra.WorldManager.describe_item_by_name(Exedra.WorldManager, player_name, description, name)
+    GenServer.call WorldManager, {:describe_item_by_name, player_name, description, name}
   end
 end
