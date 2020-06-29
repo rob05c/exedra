@@ -13,8 +13,32 @@ defmodule Exedra.Player do
     items:    MapSet.new,
     npcs:     MapSet.new,
     currency: 0,
-    command_groups: []
+    command_groups: [],
+    level: 1,
+    health: 0,
+    mana: 0
   ]
+
+  @spec max_health(Exedra.Player) :: integer
+  def max_health(player) do
+    1000 + player.level * 100
+  end
+
+  @spec max_mana(Exedra.Player) :: integer
+  def max_mana(player) do
+    100 + player.level * 10
+  end
+
+  @spec prompt(Exedra.Player) :: String.t
+  def prompt(player) do
+    Logger.info "new prompt"
+    general_color = Exedra.ANSI.colors[:grey]
+    health_color = Exedra.ANSI.colors[:green]
+    mana_color = Exedra.ANSI.colors[:blue]
+    reset_color = Exedra.ANSI.colors[:reset]
+    pt = general_color <> "[Health: " <> health_color <> to_string(player.health) <> general_color <> " Mana: " <> mana_color <> to_string(player.mana) <> general_color <> "]" <> reset_color
+    pt
+  end
 
   def load() do
     File.mkdir_p! Path.dirname(@data_file)
@@ -49,6 +73,8 @@ defmodule Exedra.Player do
             Exedra.CommandGroup.Admin
           ]
         }
+        new_player = %{new_player | health: max_health(new_player)}
+        new_player = %{new_player | mana: max_mana(new_player)}
         :ets.insert_new(:players, {player_name, new_player})
         # TODO: dump all object tables at once
         :ets.tab2file(:players,String.to_charlist(@data_file), sync: true)

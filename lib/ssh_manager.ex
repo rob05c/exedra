@@ -51,11 +51,11 @@ defmodule Exedra.SSHManager do
            false}
         end
       end,
-      pwdfun: fn(player, pass, {_ip, _port}, _state) ->
-        player = String.Chars.to_string(player)
+      pwdfun: fn(player_name, pass, {_ip, _port}, _state) ->
+        player_name = String.Chars.to_string(player_name)
         pass = String.Chars.to_string(pass)
         # # TODO: block repeated IP failures
-        Exedra.Player.login(player, pass)
+        Exedra.Player.login(player_name, pass)
        end
 
 

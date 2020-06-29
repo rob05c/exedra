@@ -1,5 +1,6 @@
 defmodule Exedra.REPL do
   alias Exedra.SessionManager, as: SessionManager
+  alias Exedra.Player, as: Player
 
   def start(player_charlist) do
     playername = String.Chars.to_string player_charlist
@@ -18,29 +19,37 @@ defmodule Exedra.REPL do
     loop_pid
   end
 
-  def loop(playername) do
+  def loop(player_name) do
     receive do
       {:input, input} ->
         input
         |> String.Chars.to_string
         |> String.trim_trailing
         |> String.split(" ")
-        |> Exedra.WorldManager.player_exec(playername)
+        |> Exedra.WorldManager.player_exec(player_name)
         |> IO.puts
-        loop(playername)
+        # TODO this is a race.
+        #      Fix WorldManager.player_exec to return the prompt
+        {:ok, player} = Exedra.Player.get(player_name)
+        IO.puts Player.prompt(player)
+        loop(player_name)
       {:die, reason} ->
         # TODO log
-        IO.puts playername <> " lost connection: " <> Atom.to_string(reason)
-        logout playername
+        IO.puts player_name <> " lost connection: " <> Atom.to_string(reason)
+        logout player_name
         :ok
       {:message, message} ->
         IO.puts message
-        loop(playername)
+        # TODO this is a race.
+        #      Fix WorldManager.player_exec to return the prompt
+        {:ok, player} = Exedra.Player.get(player_name)
+        IO.puts Player.prompt(player)
+        loop(player_name)
     end
   end
 
-  def input_listen(playername, loop_pid) do
-    prompt = "> "
+  def input_listen(player_name, loop_pid) do
+    prompt = ">"
     case IO.gets prompt do
       {:error, reason} ->
         send loop_pid, {:die, reason}
@@ -48,7 +57,7 @@ defmodule Exedra.REPL do
         send loop_pid, {:die, :eof}
       data ->
         send loop_pid, {:input, data}
-        input_listen(playername, loop_pid)
+        input_listen(player_name, loop_pid)
     end
   end
 
