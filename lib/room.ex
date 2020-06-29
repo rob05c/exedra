@@ -2,8 +2,8 @@ defmodule Exedra.Room do
   require Logger
 
   alias Exedra.ANSI, as: ANSI
+  alias Exedra.Player, as: Player
   alias Exedra.CommandGroup.General, as: CommandGroupGeneral
-  alias Exedra.Container, as: Container
 
   @data_file "data/rooms"
 
@@ -166,12 +166,14 @@ defmodule Exedra.Room do
         {:ok, msg_pid} ->
           if room_player_name == player_name do
             if self_msg != "" do
-              send msg_pid, {:message, self_msg} # TODO catch? rescue?
+              {:ok, player} = Player.get(room_player_name)
+              send msg_pid, {:message, self_msg <>  "\n" <> Player.prompt(player)} # TODO catch? rescue?
             else
               nil
             end
           else
-            send msg_pid, {:message, others_msg} # TODO catch? rescue?
+            {:ok, player} = Player.get(room_player_name)
+            send msg_pid, {:message, others_msg <>  "\n" <> Player.prompt(player)} # TODO catch? rescue?
           end
         :error ->
           # Logger.error "player " <> room_player_name <> " was in room but not logged in."
@@ -194,6 +196,8 @@ defmodule Exedra.Room do
           if Enum.member? player_name_exceptions, room_player_name do
             nil
           else
+            {:ok, player} = Exedra.Player.get(room_player_name)
+            msg = msg <>  "\n" <> Player.prompt(player)
             send msg_pid, {:message, msg} # TODO catch? rescue?
           end
         :error ->

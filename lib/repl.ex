@@ -40,10 +40,6 @@ defmodule Exedra.REPL do
         :ok
       {:message, message} ->
         IO.puts message
-        # TODO this is a race.
-        #      Fix WorldManager.player_exec to return the prompt
-        {:ok, player} = Exedra.Player.get(player_name)
-        IO.puts Player.prompt(player)
         loop(player_name)
     end
   end

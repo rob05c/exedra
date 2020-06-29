@@ -130,7 +130,8 @@ defmodule Exedra.Player do
     # Logger.info inspect(room.players)
     case Exedra.SessionManager.get(Exedra.SessionManager, player.name) do
       {:ok, msg_pid} ->
-          send msg_pid, {:message, msg} # TODO catch? rescue?
+        msg = msg <>  "\n" <> prompt(player)
+        send msg_pid, {:message, msg} # TODO catch? rescue?
       :error ->
         Logger.error "Player.message for player that wasn't logged in!"
         # TODO lock. There's a race here, like every other data mutation

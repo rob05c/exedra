@@ -13,6 +13,7 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
 
   use GenServer
   require Logger
+  alias Exedra.Player, as: Player
 
   @doc """
   Executes the command from the given player, returning the response to send the player.
@@ -488,8 +489,10 @@ This could be optimized in the future, e.g. we could only "lock" the rooms invol
 
   # @spec tell_connected_player(String.t, String.t, nonempty_list(String.t), pid) :: :ok
   def tell_connected_player(player_name, target_player_name, said_words, target_pid) do
+    {:ok, player} = Exedra.Player.get(player_name)
     said = Enum.join(said_words, " ")
-    send target_pid, {:message, tell_other_msg(player_name, said)}
+    target_msg = tell_other_msg(player_name, said) <> "\n" <> Player.prompt(player)
+    send target_pid, {:message, target_msg}
     tell_self_msg(target_player_name, said)
   end
   def tell_self_msg(target_player_name, said), do: tell_color() <> "You tell " <> String.capitalize(target_player_name) <> ", \"" <>  ensure_sentence(said) <> "\"" <> reset_color()
